@@ -14,3 +14,171 @@ import * as zod from "zod";
 export const HealthCheckResponse = zod.object({
   status: zod.string(),
 });
+
+/**
+ * @summary List all pipeline runs
+ */
+export const ListPipelineRunsResponseItem = zod.object({
+  id: zod.number(),
+  type: zod.enum(["episode", "clip"]),
+  clipType: zod
+    .union([
+      zod.literal("vertical"),
+      zod.literal("horizontal"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  status: zod.enum([
+    "pending",
+    "analyzing",
+    "writing",
+    "editing",
+    "review",
+    "approved",
+    "failed",
+  ]),
+  title: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+export const ListPipelineRunsResponse = zod.array(ListPipelineRunsResponseItem);
+
+/**
+ * @summary Create and start a new pipeline run
+ */
+export const CreatePipelineRunBody = zod.object({
+  type: zod.enum(["episode", "clip"]),
+  clipType: zod.enum(["vertical", "horizontal"]).optional(),
+  episodeTranscript: zod.string(),
+  clipTranscript: zod.string().optional(),
+});
+
+/**
+ * @summary Get a pipeline run with all outputs
+ */
+export const GetPipelineRunParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetPipelineRunResponse = zod.object({
+  id: zod.number(),
+  type: zod.enum(["episode", "clip"]),
+  clipType: zod
+    .union([
+      zod.literal("vertical"),
+      zod.literal("horizontal"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  status: zod.enum([
+    "pending",
+    "analyzing",
+    "writing",
+    "editing",
+    "review",
+    "approved",
+    "failed",
+  ]),
+  title: zod.string().nullish(),
+  episodeTranscript: zod.string(),
+  clipTranscript: zod.string().nullish(),
+  analystOutput: zod.string().nullish(),
+  writerOutput: zod.string().nullish(),
+  editorOutput: zod.string().nullish(),
+  feedbackHistory: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Delete a pipeline run
+ */
+export const DeletePipelineRunParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary Stream pipeline progress (SSE)
+ */
+export const StreamPipelineRunParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary Submit feedback on a specific output for Editor revision
+ */
+export const SubmitFeedbackParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const SubmitFeedbackBody = zod.object({
+  targetOutput: zod.string(),
+  feedback: zod.string(),
+});
+
+/**
+ * @summary Approve the final content package
+ */
+export const ApprovePipelineRunParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ApprovePipelineRunResponse = zod.object({
+  id: zod.number(),
+  type: zod.enum(["episode", "clip"]),
+  clipType: zod
+    .union([
+      zod.literal("vertical"),
+      zod.literal("horizontal"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  status: zod.enum([
+    "pending",
+    "analyzing",
+    "writing",
+    "editing",
+    "review",
+    "approved",
+    "failed",
+  ]),
+  title: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Get dashboard summary stats
+ */
+export const GetPipelineDashboardResponse = zod.object({
+  totalRuns: zod.number(),
+  episodeRuns: zod.number(),
+  clipRuns: zod.number(),
+  approvedRuns: zod.number(),
+  pendingReviewRuns: zod.number(),
+  recentRuns: zod.array(
+    zod.object({
+      id: zod.number(),
+      type: zod.enum(["episode", "clip"]),
+      clipType: zod
+        .union([
+          zod.literal("vertical"),
+          zod.literal("horizontal"),
+          zod.literal(null),
+        ])
+        .nullish(),
+      status: zod.enum([
+        "pending",
+        "analyzing",
+        "writing",
+        "editing",
+        "review",
+        "approved",
+        "failed",
+      ]),
+      title: zod.string().nullish(),
+      createdAt: zod.coerce.date(),
+      updatedAt: zod.coerce.date(),
+    }),
+  ),
+});

@@ -5,18 +5,29 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import type {
+  MutationFunction,
   QueryFunction,
   QueryKey,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult,
 } from "@tanstack/react-query";
 
-import type { HealthStatus } from "./api.schemas";
+import type {
+  CreatePipelineRunBody,
+  HealthStatus,
+  PipelineDashboard,
+  PipelineError,
+  PipelineRun,
+  PipelineRunDetail,
+  SubmitFeedbackBody,
+} from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
-import type { ErrorType } from "../custom-fetch";
+import type { ErrorType, BodyType } from "../custom-fetch";
 
 type AwaitedInput<T> = PromiseLike<T> | T;
 
@@ -92,6 +103,671 @@ export function useHealthCheck<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getHealthCheckQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List all pipeline runs
+ */
+export const getListPipelineRunsUrl = () => {
+  return `/api/pipeline/runs`;
+};
+
+export const listPipelineRuns = async (
+  options?: RequestInit,
+): Promise<PipelineRun[]> => {
+  return customFetch<PipelineRun[]>(getListPipelineRunsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListPipelineRunsQueryKey = () => {
+  return [`/api/pipeline/runs`] as const;
+};
+
+export const getListPipelineRunsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listPipelineRuns>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listPipelineRuns>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListPipelineRunsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listPipelineRuns>>
+  > = ({ signal }) => listPipelineRuns({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listPipelineRuns>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListPipelineRunsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listPipelineRuns>>
+>;
+export type ListPipelineRunsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all pipeline runs
+ */
+
+export function useListPipelineRuns<
+  TData = Awaited<ReturnType<typeof listPipelineRuns>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listPipelineRuns>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListPipelineRunsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create and start a new pipeline run
+ */
+export const getCreatePipelineRunUrl = () => {
+  return `/api/pipeline/runs`;
+};
+
+export const createPipelineRun = async (
+  createPipelineRunBody: CreatePipelineRunBody,
+  options?: RequestInit,
+): Promise<PipelineRun> => {
+  return customFetch<PipelineRun>(getCreatePipelineRunUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createPipelineRunBody),
+  });
+};
+
+export const getCreatePipelineRunMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createPipelineRun>>,
+    TError,
+    { data: BodyType<CreatePipelineRunBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createPipelineRun>>,
+  TError,
+  { data: BodyType<CreatePipelineRunBody> },
+  TContext
+> => {
+  const mutationKey = ["createPipelineRun"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createPipelineRun>>,
+    { data: BodyType<CreatePipelineRunBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createPipelineRun(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreatePipelineRunMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createPipelineRun>>
+>;
+export type CreatePipelineRunMutationBody = BodyType<CreatePipelineRunBody>;
+export type CreatePipelineRunMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create and start a new pipeline run
+ */
+export const useCreatePipelineRun = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createPipelineRun>>,
+    TError,
+    { data: BodyType<CreatePipelineRunBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createPipelineRun>>,
+  TError,
+  { data: BodyType<CreatePipelineRunBody> },
+  TContext
+> => {
+  return useMutation(getCreatePipelineRunMutationOptions(options));
+};
+
+/**
+ * @summary Get a pipeline run with all outputs
+ */
+export const getGetPipelineRunUrl = (id: number) => {
+  return `/api/pipeline/runs/${id}`;
+};
+
+export const getPipelineRun = async (
+  id: number,
+  options?: RequestInit,
+): Promise<PipelineRunDetail> => {
+  return customFetch<PipelineRunDetail>(getGetPipelineRunUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetPipelineRunQueryKey = (id: number) => {
+  return [`/api/pipeline/runs/${id}`] as const;
+};
+
+export const getGetPipelineRunQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPipelineRun>>,
+  TError = ErrorType<PipelineError>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getPipelineRun>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetPipelineRunQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getPipelineRun>>> = ({
+    signal,
+  }) => getPipelineRun(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getPipelineRun>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetPipelineRunQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPipelineRun>>
+>;
+export type GetPipelineRunQueryError = ErrorType<PipelineError>;
+
+/**
+ * @summary Get a pipeline run with all outputs
+ */
+
+export function useGetPipelineRun<
+  TData = Awaited<ReturnType<typeof getPipelineRun>>,
+  TError = ErrorType<PipelineError>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getPipelineRun>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetPipelineRunQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Delete a pipeline run
+ */
+export const getDeletePipelineRunUrl = (id: number) => {
+  return `/api/pipeline/runs/${id}`;
+};
+
+export const deletePipelineRun = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeletePipelineRunUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeletePipelineRunMutationOptions = <
+  TError = ErrorType<PipelineError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deletePipelineRun>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deletePipelineRun>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deletePipelineRun"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deletePipelineRun>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deletePipelineRun(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeletePipelineRunMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deletePipelineRun>>
+>;
+
+export type DeletePipelineRunMutationError = ErrorType<PipelineError>;
+
+/**
+ * @summary Delete a pipeline run
+ */
+export const useDeletePipelineRun = <
+  TError = ErrorType<PipelineError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deletePipelineRun>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deletePipelineRun>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeletePipelineRunMutationOptions(options));
+};
+
+/**
+ * @summary Stream pipeline progress (SSE)
+ */
+export const getStreamPipelineRunUrl = (id: number) => {
+  return `/api/pipeline/runs/${id}/stream`;
+};
+
+export const streamPipelineRun = async (
+  id: number,
+  options?: RequestInit,
+): Promise<unknown> => {
+  return customFetch<unknown>(getStreamPipelineRunUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getStreamPipelineRunQueryKey = (id: number) => {
+  return [`/api/pipeline/runs/${id}/stream`] as const;
+};
+
+export const getStreamPipelineRunQueryOptions = <
+  TData = Awaited<ReturnType<typeof streamPipelineRun>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof streamPipelineRun>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getStreamPipelineRunQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof streamPipelineRun>>
+  > = ({ signal }) => streamPipelineRun(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof streamPipelineRun>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type StreamPipelineRunQueryResult = NonNullable<
+  Awaited<ReturnType<typeof streamPipelineRun>>
+>;
+export type StreamPipelineRunQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Stream pipeline progress (SSE)
+ */
+
+export function useStreamPipelineRun<
+  TData = Awaited<ReturnType<typeof streamPipelineRun>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof streamPipelineRun>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getStreamPipelineRunQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Submit feedback on a specific output for Editor revision
+ */
+export const getSubmitFeedbackUrl = (id: number) => {
+  return `/api/pipeline/runs/${id}/feedback`;
+};
+
+export const submitFeedback = async (
+  id: number,
+  submitFeedbackBody: SubmitFeedbackBody,
+  options?: RequestInit,
+): Promise<unknown> => {
+  return customFetch<unknown>(getSubmitFeedbackUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(submitFeedbackBody),
+  });
+};
+
+export const getSubmitFeedbackMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof submitFeedback>>,
+    TError,
+    { id: number; data: BodyType<SubmitFeedbackBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof submitFeedback>>,
+  TError,
+  { id: number; data: BodyType<SubmitFeedbackBody> },
+  TContext
+> => {
+  const mutationKey = ["submitFeedback"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof submitFeedback>>,
+    { id: number; data: BodyType<SubmitFeedbackBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return submitFeedback(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SubmitFeedbackMutationResult = NonNullable<
+  Awaited<ReturnType<typeof submitFeedback>>
+>;
+export type SubmitFeedbackMutationBody = BodyType<SubmitFeedbackBody>;
+export type SubmitFeedbackMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Submit feedback on a specific output for Editor revision
+ */
+export const useSubmitFeedback = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof submitFeedback>>,
+    TError,
+    { id: number; data: BodyType<SubmitFeedbackBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof submitFeedback>>,
+  TError,
+  { id: number; data: BodyType<SubmitFeedbackBody> },
+  TContext
+> => {
+  return useMutation(getSubmitFeedbackMutationOptions(options));
+};
+
+/**
+ * @summary Approve the final content package
+ */
+export const getApprovePipelineRunUrl = (id: number) => {
+  return `/api/pipeline/runs/${id}/approve`;
+};
+
+export const approvePipelineRun = async (
+  id: number,
+  options?: RequestInit,
+): Promise<PipelineRun> => {
+  return customFetch<PipelineRun>(getApprovePipelineRunUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getApprovePipelineRunMutationOptions = <
+  TError = ErrorType<PipelineError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof approvePipelineRun>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof approvePipelineRun>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["approvePipelineRun"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof approvePipelineRun>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return approvePipelineRun(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ApprovePipelineRunMutationResult = NonNullable<
+  Awaited<ReturnType<typeof approvePipelineRun>>
+>;
+
+export type ApprovePipelineRunMutationError = ErrorType<PipelineError>;
+
+/**
+ * @summary Approve the final content package
+ */
+export const useApprovePipelineRun = <
+  TError = ErrorType<PipelineError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof approvePipelineRun>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof approvePipelineRun>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getApprovePipelineRunMutationOptions(options));
+};
+
+/**
+ * @summary Get dashboard summary stats
+ */
+export const getGetPipelineDashboardUrl = () => {
+  return `/api/pipeline/dashboard`;
+};
+
+export const getPipelineDashboard = async (
+  options?: RequestInit,
+): Promise<PipelineDashboard> => {
+  return customFetch<PipelineDashboard>(getGetPipelineDashboardUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetPipelineDashboardQueryKey = () => {
+  return [`/api/pipeline/dashboard`] as const;
+};
+
+export const getGetPipelineDashboardQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPipelineDashboard>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getPipelineDashboard>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetPipelineDashboardQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getPipelineDashboard>>
+  > = ({ signal }) => getPipelineDashboard({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getPipelineDashboard>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetPipelineDashboardQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPipelineDashboard>>
+>;
+export type GetPipelineDashboardQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get dashboard summary stats
+ */
+
+export function useGetPipelineDashboard<
+  TData = Awaited<ReturnType<typeof getPipelineDashboard>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getPipelineDashboard>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetPipelineDashboardQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

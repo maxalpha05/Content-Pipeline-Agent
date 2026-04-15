@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: pipeline
+    description: Content pipeline operations
 paths:
   /healthz:
     get:
@@ -24,6 +26,154 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /pipeline/runs:
+    get:
+      operationId: listPipelineRuns
+      tags: [pipeline]
+      summary: List all pipeline runs
+      responses:
+        "200":
+          description: List of pipeline runs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PipelineRun"
+    post:
+      operationId: createPipelineRun
+      tags: [pipeline]
+      summary: Create and start a new pipeline run
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePipelineRunBody"
+      responses:
+        "201":
+          description: Created pipeline run
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PipelineRun"
+  /pipeline/runs/{id}:
+    get:
+      operationId: getPipelineRun
+      tags: [pipeline]
+      summary: Get a pipeline run with all outputs
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Pipeline run with outputs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PipelineRunDetail"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PipelineError"
+    delete:
+      operationId: deletePipelineRun
+      tags: [pipeline]
+      summary: Delete a pipeline run
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PipelineError"
+  /pipeline/runs/{id}/stream:
+    get:
+      operationId: streamPipelineRun
+      tags: [pipeline]
+      summary: Stream pipeline progress (SSE)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: SSE stream of pipeline progress
+          content:
+            text/event-stream: {}
+  /pipeline/runs/{id}/feedback:
+    post:
+      operationId: submitFeedback
+      tags: [pipeline]
+      summary: Submit feedback on a specific output for Editor revision
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmitFeedbackBody"
+      responses:
+        "200":
+          description: SSE stream of revised output
+          content:
+            text/event-stream: {}
+  /pipeline/runs/{id}/approve:
+    post:
+      operationId: approvePipelineRun
+      tags: [pipeline]
+      summary: Approve the final content package
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Approved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PipelineRun"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PipelineError"
+  /pipeline/dashboard:
+    get:
+      operationId: getPipelineDashboard
+      tags: [pipeline]
+      summary: Get dashboard summary stats
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PipelineDashboard"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +183,129 @@ components:
           type: string
       required:
         - status
-
+    PipelineRun:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [episode, clip]
+        clipType:
+          type: ["string", "null"]
+          enum: [vertical, horizontal, null]
+        status:
+          type: string
+          enum: [pending, analyzing, writing, editing, review, approved, failed]
+        title:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - type
+        - status
+        - createdAt
+        - updatedAt
+    PipelineRunDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [episode, clip]
+        clipType:
+          type: ["string", "null"]
+          enum: [vertical, horizontal, null]
+        status:
+          type: string
+          enum: [pending, analyzing, writing, editing, review, approved, failed]
+        title:
+          type: ["string", "null"]
+        episodeTranscript:
+          type: string
+        clipTranscript:
+          type: ["string", "null"]
+        analystOutput:
+          type: ["string", "null"]
+        writerOutput:
+          type: ["string", "null"]
+        editorOutput:
+          type: ["string", "null"]
+        feedbackHistory:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - type
+        - status
+        - episodeTranscript
+        - createdAt
+        - updatedAt
+    CreatePipelineRunBody:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [episode, clip]
+        clipType:
+          type: string
+          enum: [vertical, horizontal]
+        episodeTranscript:
+          type: string
+        clipTranscript:
+          type: string
+      required:
+        - type
+        - episodeTranscript
+    SubmitFeedbackBody:
+      type: object
+      properties:
+        targetOutput:
+          type: string
+        feedback:
+          type: string
+      required:
+        - targetOutput
+        - feedback
+    PipelineDashboard:
+      type: object
+      properties:
+        totalRuns:
+          type: integer
+        episodeRuns:
+          type: integer
+        clipRuns:
+          type: integer
+        approvedRuns:
+          type: integer
+        pendingReviewRuns:
+          type: integer
+        recentRuns:
+          type: array
+          items:
+            $ref: "#/components/schemas/PipelineRun"
+      required:
+        - totalRuns
+        - episodeRuns
+        - clipRuns
+        - approvedRuns
+        - pendingReviewRuns
+        - recentRuns
+    PipelineError:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error

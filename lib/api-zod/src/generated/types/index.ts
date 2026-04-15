@@ -6,4 +6,18 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from "./createPipelineRunBody";
+export * from "./createPipelineRunBodyClipType";
+export * from "./createPipelineRunBodyType";
 export * from "./healthStatus";
+export * from "./pipelineDashboard";
+export * from "./pipelineError";
+export * from "./pipelineRun";
+export * from "./pipelineRunClipType";
+export * from "./pipelineRunDetail";
+export * from "./pipelineRunDetailClipType";
+export * from "./pipelineRunDetailStatus";
+export * from "./pipelineRunDetailType";
+export * from "./pipelineRunStatus";
+export * from "./pipelineRunType";
+export * from "./submitFeedbackBody";

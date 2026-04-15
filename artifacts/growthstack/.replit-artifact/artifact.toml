@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "GrowthStack Content Pipeline"
+version = "1.0.0"
+id = "artifacts/growthstack"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 19410
+
+[services.development]
+run = "pnpm --filter @workspace/growthstack run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/growthstack", "run", "build" ]
+publicDir = "artifacts/growthstack/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19410"
+BASE_PATH = "/"

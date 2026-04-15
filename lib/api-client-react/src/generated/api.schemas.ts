@@ -8,3 +8,145 @@
 export interface HealthStatus {
   status: string;
 }
+
+export type PipelineRunType =
+  (typeof PipelineRunType)[keyof typeof PipelineRunType];
+
+export const PipelineRunType = {
+  episode: "episode",
+  clip: "clip",
+} as const;
+
+/**
+ * @nullable
+ */
+export type PipelineRunClipType =
+  | (typeof PipelineRunClipType)[keyof typeof PipelineRunClipType]
+  | null;
+
+export const PipelineRunClipType = {
+  vertical: "vertical",
+  horizontal: "horizontal",
+} as const;
+
+export type PipelineRunStatus =
+  (typeof PipelineRunStatus)[keyof typeof PipelineRunStatus];
+
+export const PipelineRunStatus = {
+  pending: "pending",
+  analyzing: "analyzing",
+  writing: "writing",
+  editing: "editing",
+  review: "review",
+  approved: "approved",
+  failed: "failed",
+} as const;
+
+export interface PipelineRun {
+  id: number;
+  type: PipelineRunType;
+  /** @nullable */
+  clipType?: PipelineRunClipType;
+  status: PipelineRunStatus;
+  /** @nullable */
+  title?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type PipelineRunDetailType =
+  (typeof PipelineRunDetailType)[keyof typeof PipelineRunDetailType];
+
+export const PipelineRunDetailType = {
+  episode: "episode",
+  clip: "clip",
+} as const;
+
+/**
+ * @nullable
+ */
+export type PipelineRunDetailClipType =
+  | (typeof PipelineRunDetailClipType)[keyof typeof PipelineRunDetailClipType]
+  | null;
+
+export const PipelineRunDetailClipType = {
+  vertical: "vertical",
+  horizontal: "horizontal",
+} as const;
+
+export type PipelineRunDetailStatus =
+  (typeof PipelineRunDetailStatus)[keyof typeof PipelineRunDetailStatus];
+
+export const PipelineRunDetailStatus = {
+  pending: "pending",
+  analyzing: "analyzing",
+  writing: "writing",
+  editing: "editing",
+  review: "review",
+  approved: "approved",
+  failed: "failed",
+} as const;
+
+export interface PipelineRunDetail {
+  id: number;
+  type: PipelineRunDetailType;
+  /** @nullable */
+  clipType?: PipelineRunDetailClipType;
+  status: PipelineRunDetailStatus;
+  /** @nullable */
+  title?: string | null;
+  episodeTranscript: string;
+  /** @nullable */
+  clipTranscript?: string | null;
+  /** @nullable */
+  analystOutput?: string | null;
+  /** @nullable */
+  writerOutput?: string | null;
+  /** @nullable */
+  editorOutput?: string | null;
+  /** @nullable */
+  feedbackHistory?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type CreatePipelineRunBodyType =
+  (typeof CreatePipelineRunBodyType)[keyof typeof CreatePipelineRunBodyType];
+
+export const CreatePipelineRunBodyType = {
+  episode: "episode",
+  clip: "clip",
+} as const;
+
+export type CreatePipelineRunBodyClipType =
+  (typeof CreatePipelineRunBodyClipType)[keyof typeof CreatePipelineRunBodyClipType];
+
+export const CreatePipelineRunBodyClipType = {
+  vertical: "vertical",
+  horizontal: "horizontal",
+} as const;
+
+export interface CreatePipelineRunBody {
+  type: CreatePipelineRunBodyType;
+  clipType?: CreatePipelineRunBodyClipType;
+  episodeTranscript: string;
+  clipTranscript?: string;
+}
+
+export interface SubmitFeedbackBody {
+  targetOutput: string;
+  feedback: string;
+}
+
+export interface PipelineDashboard {
+  totalRuns: number;
+  episodeRuns: number;
+  clipRuns: number;
+  approvedRuns: number;
+  pendingReviewRuns: number;
+  recentRuns: PipelineRun[];
+}
+
+export interface PipelineError {
+  error: string;
+}

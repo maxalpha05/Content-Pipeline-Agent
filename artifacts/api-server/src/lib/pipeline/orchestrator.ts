@@ -218,8 +218,10 @@ export async function runClipPipeline(
     let youtubeDataJson: string | null = null;
     let formattedYoutubeData = "No YouTube Shorts data available.";
     const apiKey = process.env.YOUTUBE_API_KEY;
+    logger.info({ apiKeyPresent: !!apiKey, apiKeyLength: apiKey?.length ?? 0 }, "[YouTube] env var check");
     if (apiKey) {
       const keywords = extractTopicKeywords(clipTranscript);
+      logger.info({ keywords }, "[YouTube] extracted keywords");
       const youtubeResults = await searchYouTubeShorts(apiKey, keywords);
       if (youtubeResults.length > 0) {
         youtubeDataJson = JSON.stringify(youtubeResults);

@@ -16,8 +16,14 @@ export async function searchYouTubeShorts(
 ): Promise<YouTubeShort[]> {
   try {
     const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query + " #shorts")}&type=video&videoDuration=short&maxResults=8&order=viewCount&key=${apiKey}`;
+    console.log("[YouTube] search query:", query);
     const searchRes = await fetch(searchUrl);
-    if (!searchRes.ok) return [];
+    console.log("[YouTube] search status:", searchRes.status, searchRes.statusText);
+    if (!searchRes.ok) {
+      const errBody = await searchRes.text();
+      console.error("[YouTube] search error body:", errBody);
+      return [];
+    }
     const searchData = (await searchRes.json()) as {
       items?: { id: { videoId: string } }[];
     };

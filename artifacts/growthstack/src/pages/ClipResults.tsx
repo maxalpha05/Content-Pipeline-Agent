@@ -352,14 +352,133 @@ function YouTubeCard({ short }: { short: YouTubeShort }) {
   );
 }
 
+// ─── Intel parsing helpers ────────────────────────────────────────────────────
+
+interface IntelEntry { headline: string; details: string[]; }
+interface PatternEntry { label: string; body: string; }
+
+function parseIntelBullets(text: string): IntelEntry[] {
+  if (!text.trim()) return [];
+  const lines = text.split("\n");
+  const entries: IntelEntry[] = [];
+  let current: IntelEntry | null = null;
+
+  for (const raw of lines) {
+    const trimmed = raw.trim();
+    if (!trimmed) continue;
+
+    // Top-level bullet: line starts with "- " or "* " with no leading whitespace
+    const isTopLevel = /^[-*]\s/.test(raw) && !/^\s+/.test(raw);
+    // Indented bullet: leading whitespace then "- " or "* "
+    const isSubBullet = /^\s+[-*]\s/.test(raw);
+
+    if (isTopLevel) {
+      current = { headline: trimmed.replace(/^[-*]\s+/, ""), details: [] };
+      entries.push(current);
+    } else if (isSubBullet && current) {
+      current.details.push(trimmed.replace(/^[-*]\s+/, ""));
+    } else if (current && trimmed) {
+      // Continuation line — append to last detail or headline
+      if (current.details.length > 0) {
+        current.details[current.details.length - 1] += " " + trimmed;
+      } else {
+        current.headline += " " + trimmed;
+      }
+    }
+  }
+
+  return entries.filter((e) => e.headline.trim());
+}
+
+function parseCrossPlatformPatterns(text: string): PatternEntry[] {
+  if (!text.trim()) return [];
+  const results: PatternEntry[] = [];
+  // Match lines like "- Hook patterns: ..." or "- Titling patterns: ..."
+  const lines = text.split("\n");
+  let current: PatternEntry | null = null;
+
+  for (const raw of lines) {
+    const trimmed = raw.trim();
+    if (!trimmed) continue;
+
+    const labelMatch = trimmed.match(/^[-*]?\s*([\w][^:]{2,40}):\s*(.*)$/);
+    const isTopLevel = /^[-*]\s/.test(raw) && !/^\s+/.test(raw);
+    const isSubBullet = /^\s+[-*]\s/.test(raw);
+
+    if (labelMatch && isTopLevel) {
+      current = { label: labelMatch[1].trim(), body: labelMatch[2].trim() };
+      results.push(current);
+    } else if (isSubBullet && current) {
+      const subText = trimmed.replace(/^[-*]\s+/, "");
+      current.body += current.body ? " " + subText : subText;
+    } else if (current && !isTopLevel && trimmed) {
+      current.body += " " + trimmed;
+    }
+  }
+
+  return results.filter((e) => e.label && e.body);
+}
+
+// ─── Intel entry components ───────────────────────────────────────────────────
+
+function IntelEntryCard({ headline, details }: IntelEntry) {
+  // Strip markdown bold markers for display
+  const clean = (s: string) => s.replace(/\*\*(.*?)\*\*/g, "$1");
+  return (
+    <div className="border border-border/60 rounded-md px-3.5 py-3 bg-card">
+      <p className="text-sm font-medium text-foreground leading-snug">{clean(headline)}</p>
+      {details.length > 0 && (
+        <ul className="mt-2 space-y-1">
+          {details.map((d, i) => (
+            <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
+              <span className="mt-[5px] h-1 w-1 rounded-full bg-muted-foreground/50 shrink-0" />
+              <span className="leading-relaxed">{clean(d)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+const PATTERN_COLORS: Record<string, string> = {
+  hook: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-400",
+  titl: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-400",
+  tag:  "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-400",
+  clos: "bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-400",
+  thum: "bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-400",
+};
+
+function PatternRow({ label, body }: PatternEntry) {
+  // Use the first word to derive the color key ("Tag and hashtag..." → "tag")
+  const key = label.toLowerCase().split(/\s+/)[0].slice(0, 4);
+  const color = PATTERN_COLORS[key] || "bg-muted text-muted-foreground";
+  const shortLabel = label.split(/\s+/).slice(0, 2).join(" ");
+  return (
+    <div className="flex items-start gap-3 border border-border/60 rounded-md px-3.5 py-3 bg-card">
+      <span className={`text-[9px] font-bold px-2 py-0.5 rounded shrink-0 mt-0.5 uppercase tracking-wide whitespace-nowrap ${color}`}>
+        {shortLabel}
+      </span>
+      <p className="text-sm text-foreground leading-relaxed">{body}</p>
+    </div>
+  );
+}
+
+// ─── Competitive platform accordion ──────────────────────────────────────────
+
 function CompetitivePlatform({
-  label, color, content, youtubeShorts,
+  label, color, content, youtubeShorts, isCrossPlatform,
 }: {
-  label: string; color: string; content: string; youtubeShorts?: YouTubeShort[] | null;
+  label: string; color: string; content: string;
+  youtubeShorts?: YouTubeShort[] | null; isCrossPlatform?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const hasContent = content.trim() || (youtubeShorts && youtubeShorts.length > 0);
   if (!hasContent) return null;
+
+  const intelEntries = !isCrossPlatform ? parseIntelBullets(content) : [];
+  const patternEntries = isCrossPlatform ? parseCrossPlatformPatterns(content) : [];
+
   return (
     <div className="border border-border/50 rounded-md overflow-hidden">
       <button
@@ -377,13 +496,30 @@ function CompetitivePlatform({
         {open ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />}
       </button>
       {open && (
-        <div className="border-t border-border/50 p-4 space-y-3">
+        <div className="border-t border-border/50 p-4 space-y-2">
+          {/* YouTube API cards (always shown first for YT) */}
           {youtubeShorts && youtubeShorts.length > 0 && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 mb-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 mb-1">
               {youtubeShorts.map((s) => <YouTubeCard key={s.url} short={s} />)}
             </div>
           )}
-          {content && (
+          {/* Cross-platform patterns: labelled pattern rows */}
+          {isCrossPlatform && patternEntries.length > 0 && (
+            <div className="space-y-2">
+              {patternEntries.map((p, i) => <PatternRow key={i} {...p} />)}
+            </div>
+          )}
+          {/* Platform-specific entries: individual intel cards */}
+          {!isCrossPlatform && intelEntries.length > 0 && (
+            <div className="space-y-2">
+              {intelEntries.map((e, i) => <IntelEntryCard key={i} {...e} />)}
+            </div>
+          )}
+          {/* Fallback: raw text if parsing produced nothing */}
+          {content && !isCrossPlatform && intelEntries.length === 0 && (
+            <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{content}</p>
+          )}
+          {content && isCrossPlatform && patternEntries.length === 0 && (
             <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{content}</p>
           )}
         </div>
@@ -671,6 +807,7 @@ export default function ClipResults({ run, runId, isProcessing }: ClipResultsPro
             label="ALL"
             color="bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400"
             content={research.crossPlatform}
+            isCrossPlatform
           />
           {!research.youtube && !research.instagram && !research.tiktok && !research.linkedin && !research.twitter && !research.crossPlatform && run.researchOutput && (
             <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{run.researchOutput}</p>

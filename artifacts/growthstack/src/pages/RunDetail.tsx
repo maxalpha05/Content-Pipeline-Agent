@@ -118,6 +118,7 @@ export default function RunDetail() {
   const [feedbackTarget, setFeedbackTarget] = useState<string | null>(null);
   const [feedbackText, setFeedbackText] = useState("");
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
+  const sseActiveRef = useRef(false);
 
   const { data: run, isLoading, isError } = useGetPipelineRun(runId, {
     query: {
@@ -131,25 +132,32 @@ export default function RunDetail() {
     }
   });
 
-  // Setup SSE stream for live updates
+  // Setup SSE stream for live updates.
+  // Uses a ref to ensure only one connection is open at a time — prevents
+  // the pipeline from re-running every time run.status changes stage.
+  // Feedback revision uses plain fetch (POST), not EventSource.
   useEffect(() => {
     if (!runId) return;
 
-    // Only connect SSE if the run is currently processing
-    const isProcessing = run?.status && ['pending', 'researching', 'analyzing', 'writing', 'editing'].includes(run.status);
-    if (!isProcessing && !isSubmittingFeedback) return;
+    // Only connect for the main pipeline — when the run is in a processing state
+    const shouldConnect = run?.status &&
+      ['pending', 'researching', 'analyzing', 'writing', 'editing'].includes(run.status);
+    if (!shouldConnect) return;
 
+    // Don't open a second connection if one is already active
+    if (sseActiveRef.current) return;
+
+    sseActiveRef.current = true;
     const eventSource = new EventSource(`/api/pipeline/runs/${runId}/stream`);
 
     eventSource.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        if (data.stage === "complete") {
-          // Re-fetch final data
+        if (data.stage === "complete" || data.type === "done") {
           queryClient.invalidateQueries({ queryKey: getGetPipelineRunQueryKey(runId) });
           eventSource.close();
+          sseActiveRef.current = false;
         } else {
-          // Optimistically update the UI based on stage
           setLiveOutputs(prev => ({
             ...prev,
             status: data.stage,
@@ -165,12 +173,14 @@ export default function RunDetail() {
 
     eventSource.onerror = () => {
       eventSource.close();
+      sseActiveRef.current = false;
     };
 
     return () => {
       eventSource.close();
+      sseActiveRef.current = false;
     };
-  }, [runId, run?.status, isSubmittingFeedback, queryClient]);
+  }, [runId, run?.status, queryClient]);
 
   // Sync live state with query data when query data updates
   useEffect(() => {

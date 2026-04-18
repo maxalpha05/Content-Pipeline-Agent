@@ -131,6 +131,18 @@ router.get("/pipeline/runs/:id/stream", async (req, res): Promise<void> => {
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
 
+  // Only start the pipeline for pending runs — prevent re-runs on reconnect
+  if (run.status !== "pending") {
+    // If already finished, tell the client so it can stop polling
+    if (["review", "approved", "failed"].includes(run.status)) {
+      res.write(`data: ${JSON.stringify({ type: "stage", stage: "complete", progress: 100 })}\n\n`);
+      res.write(`data: ${JSON.stringify({ type: "done", runId: run.id })}\n\n`);
+    }
+    // For in-progress runs, just close — polling handles status updates
+    res.end();
+    return;
+  }
+
   if (run.type === "episode") {
     await runEpisodePipeline(run.id, run.episodeTranscript, res);
   } else {

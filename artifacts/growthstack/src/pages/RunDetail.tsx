@@ -555,7 +555,7 @@ export default function RunDetail() {
                             variant="secondary" 
                             size="sm" 
                             className="h-8 text-xs font-medium"
-                            onClick={() => setFeedbackTarget(stage === 'feedback')}
+                            onClick={() => setFeedbackTarget(`${stage}Output`)}
                           >
                             <PenTool className="h-3 w-3 mr-2" />
                             Request Revision

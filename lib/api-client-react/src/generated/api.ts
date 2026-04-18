@@ -702,6 +702,89 @@ export const useApprovePipelineRun = <
 };
 
 /**
+ * @summary Reset a run to pending and clear all outputs for reprocessing
+ */
+export const getRerunPipelineRunUrl = (id: number) => {
+  return `/api/pipeline/runs/${id}/rerun`;
+};
+
+export const rerunPipelineRun = async (
+  id: number,
+  options?: RequestInit,
+): Promise<{ id: number; status: string }> => {
+  return customFetch<{ id: number; status: string }>(getRerunPipelineRunUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getRerunPipelineRunMutationOptions = <
+  TError = ErrorType<PipelineError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof rerunPipelineRun>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof rerunPipelineRun>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["rerunPipelineRun"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof rerunPipelineRun>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+    return rerunPipelineRun(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RerunPipelineRunMutationResult = NonNullable<
+  Awaited<ReturnType<typeof rerunPipelineRun>>
+>;
+
+export type RerunPipelineRunMutationError = ErrorType<PipelineError>;
+
+/**
+ * @summary Reset a run to pending and clear all outputs for reprocessing
+ */
+export const useRerunPipelineRun = <
+  TError = ErrorType<PipelineError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof rerunPipelineRun>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof rerunPipelineRun>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getRerunPipelineRunMutationOptions(options));
+};
+
+/**
  * @summary Get dashboard summary stats
  */
 export const getGetPipelineDashboardUrl = () => {

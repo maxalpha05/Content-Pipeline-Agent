@@ -185,6 +185,37 @@ router.post("/pipeline/runs/:id/feedback", async (req, res): Promise<void> => {
   res.end();
 });
 
+router.post("/pipeline/runs/:id/rerun", async (req, res): Promise<void> => {
+  const params = ApprovePipelineRunParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  const [run] = await db
+    .update(pipelineRunsTable)
+    .set({
+      status: "pending",
+      analystOutput: null,
+      writerOutput: null,
+      editorOutput: null,
+      researchOutput: null,
+      surgeryOutput: null,
+      youtubeData: null,
+      feedbackHistory: null,
+      updatedAt: new Date(),
+    })
+    .where(eq(pipelineRunsTable.id, params.data.id))
+    .returning();
+
+  if (!run) {
+    res.status(404).json({ error: "Pipeline run not found" });
+    return;
+  }
+
+  res.json({ id: run.id, status: run.status });
+});
+
 router.post("/pipeline/runs/:id/approve", async (req, res): Promise<void> => {
   const params = ApprovePipelineRunParams.safeParse(req.params);
   if (!params.success) {

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, Link, useLocation } from "wouter";
-import { useGetPipelineRun, getGetPipelineRunQueryKey, useApprovePipelineRun, useDeletePipelineRun, PipelineRunDetail } from "@workspace/api-client-react";
+import { useGetPipelineRun, getGetPipelineRunQueryKey, useApprovePipelineRun, useDeletePipelineRun, useRerunPipelineRun, PipelineRunDetail } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import AppLayout from "@/components/layout/AppLayout";
 import ClipResults from "./ClipResults";
@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, CheckCircle2, Clock, Terminal, PenTool, Edit3, PlayCircle, Loader2, Send, RefreshCw, Trash2, Eye, ThumbsUp, MessageSquare, ExternalLink } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Clock, Terminal, PenTool, Edit3, PlayCircle, Loader2, Send, RefreshCw, Trash2, Eye, ThumbsUp, MessageSquare, ExternalLink, RotateCcw } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 
 interface YouTubeShort {
@@ -134,6 +134,7 @@ export default function RunDetail() {
   const queryClient = useQueryClient();
   const approveRun = useApprovePipelineRun();
   const deleteRun = useDeletePipelineRun();
+  const rerunRun = useRerunPipelineRun();
   const [, setLocation] = useLocation();
 
   // Real-time state that updates via SSE before the query refetches
@@ -239,6 +240,27 @@ export default function RunDetail() {
             description: "Content package has been marked as approved.",
             className: "bg-emerald-50 text-emerald-900 border-emerald-200",
           });
+        }
+      }
+    );
+  };
+
+  const handleRerun = () => {
+    rerunRun.mutate(
+      { id: runId },
+      {
+        onSuccess: () => {
+          // Clear live state so old outputs don't flash while new run processes
+          setLiveOutputs({});
+          sseActiveRef.current = false;
+          queryClient.invalidateQueries({ queryKey: getGetPipelineRunQueryKey(runId) });
+          toast({
+            title: "Re-running pipeline",
+            description: "All outputs cleared. Processing with updated prompts...",
+          });
+        },
+        onError: () => {
+          toast({ title: "Error", description: "Failed to start re-run.", variant: "destructive" });
         }
       }
     );
@@ -389,6 +411,21 @@ export default function RunDetail() {
             >
               {deleteRun.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
             </Button>
+            {['review', 'approved'].includes(displayData.status ?? '') && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 text-muted-foreground"
+                onClick={handleRerun}
+                disabled={rerunRun.isPending}
+                title="Re-run the full pipeline with current prompts"
+              >
+                {rerunRun.isPending
+                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  : <RotateCcw className="h-3.5 w-3.5" />}
+                Re-run
+              </Button>
+            )}
             {displayData.status === 'review' && (
               <Button 
                 onClick={handleApprove} 

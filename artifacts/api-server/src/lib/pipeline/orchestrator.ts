@@ -222,10 +222,29 @@ export async function runClipPipeline(
     if (apiKey) {
       const keywords = extractTopicKeywords(clipTranscript);
       logger.info({ keywords }, "[YouTube] extracted keywords");
-      const youtubeResults = await searchYouTubeShorts(apiKey, keywords);
+
+      // Try with topic keywords + "marketing" (most clips are marketing-related)
+      let youtubeResults = await searchYouTubeShorts(apiKey, `${keywords} marketing`);
+
+      // Fallback 1: just the keywords alone
+      if (youtubeResults.length === 0 && keywords) {
+        logger.info("[YouTube] falling back to keywords only");
+        youtubeResults = await searchYouTubeShorts(apiKey, keywords);
+      }
+
+      // Fallback 2: top 2 keywords + marketing
+      if (youtubeResults.length === 0 && keywords) {
+        const top2 = keywords.split(" ").slice(0, 2).join(" ");
+        logger.info({ top2 }, "[YouTube] falling back to top-2 + marketing");
+        youtubeResults = await searchYouTubeShorts(apiKey, `${top2} marketing strategy`);
+      }
+
       if (youtubeResults.length > 0) {
         youtubeDataJson = JSON.stringify(youtubeResults);
         formattedYoutubeData = formatYouTubeData(youtubeResults);
+        logger.info({ count: youtubeResults.length }, "[YouTube] results stored");
+      } else {
+        logger.warn("[YouTube] all queries returned 0 results");
       }
     }
 

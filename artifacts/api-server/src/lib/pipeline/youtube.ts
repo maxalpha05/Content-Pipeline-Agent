@@ -15,7 +15,7 @@ export async function searchYouTubeShorts(
   query: string,
 ): Promise<YouTubeShort[]> {
   try {
-    const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query + " #shorts")}&type=video&videoDuration=short&maxResults=8&order=viewCount&key=${apiKey}`;
+    const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&videoDuration=short&maxResults=8&order=viewCount&key=${apiKey}`;
     console.log("[YouTube] search query:", query);
     const searchRes = await fetch(searchUrl);
     console.log("[YouTube] search status:", searchRes.status, searchRes.statusText);
@@ -27,7 +27,10 @@ export async function searchYouTubeShorts(
     const searchData = (await searchRes.json()) as {
       items?: { id: { videoId: string } }[];
     };
-    if (!searchData.items || searchData.items.length === 0) return [];
+    if (!searchData.items || searchData.items.length === 0) {
+      console.log("[YouTube] no items returned for query:", query);
+      return [];
+    }
 
     const videoIds = searchData.items
       .map((item) => item.id.videoId)
@@ -70,6 +73,7 @@ export async function searchYouTubeShorts(
       }))
       .sort((a, b) => b.views - a.views);
   } catch (e) {
+    console.error("[YouTube] exception:", e);
     return [];
   }
 }
@@ -103,27 +107,51 @@ export function formatYouTubeData(results: YouTubeShort[]): string {
 }
 
 export function extractTopicKeywords(clipText: string): string {
-  const stopwords = [
+  // Strip metadata label lines (e.g. "Talia Wolf | Getuplift (00:00)")
+  // These contain guest names and company names that pollute the keyword query.
+  const lines = clipText.split("\n");
+  const contentLines = lines.filter((line) => {
+    const trimmed = line.trim();
+    // Skip lines that look like guest/timestamp labels
+    if (trimmed.includes("|")) return false;
+    if (/\(\d{2}:\d{2}\)/.test(trimmed)) return false;
+    // Skip lines that look like "Speaker N:" prefixes
+    if (/^Speaker\s*\d+\s*:/i.test(trimmed)) return false;
+    return true;
+  });
+  const content = contentLines.join(" ");
+
+  const stopwords = new Set([
     "that", "this", "with", "from", "have", "been", "they", "their", "them",
     "what", "when", "where", "which", "will", "would", "could", "should",
     "about", "after", "before", "between", "through", "during", "also",
     "just", "like", "more", "most", "much", "some", "than", "then", "very",
     "well", "were", "your", "into", "over", "only", "other", "such", "know",
     "think", "going", "right", "people", "really", "because", "something",
-    "actually",
-  ];
-  const words = clipText
+    "actually", "want", "need", "make", "does", "doing", "done",
+    "said", "says", "saying", "gets", "getting", "come", "coming", "back",
+    "there", "these", "those", "here", "even", "every", "being", "using",
+    "things", "thing", "kind", "ways", "means", "look", "looks", "feel",
+    "start", "stop", "says", "talk", "talking", "tell", "told",
+  ]);
+
+  const words = content
     .toLowerCase()
     .replace(/[^a-z\s]/g, "")
     .split(/\s+/)
-    .filter((w) => w.length > 3 && !stopwords.includes(w));
+    .filter((w) => w.length > 4 && !stopwords.has(w));
+
   const freq: Record<string, number> = {};
   words.forEach((w) => {
     freq[w] = (freq[w] || 0) + 1;
   });
-  return Object.entries(freq)
+
+  const keywords = Object.entries(freq)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
     .map((e) => e[0])
     .join(" ");
+
+  console.log("[YouTube] extracted keywords:", keywords);
+  return keywords || "marketing growth strategy";
 }

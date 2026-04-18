@@ -1,0 +1,158 @@
+This is the biggest change. Currently the app makes ONE Analyst API call that does everything (competitive research + clip evaluation + revised transcript). We are splitting it into TWO separate sequential calls so neither one runs out of tokens.
+What to change
+Find the single Analyst API call in the Video Clip pipeline. Replace it with two sequential calls.
+Call 1: Research Analyst
+This call does competitive research. It receives the clip transcript and YouTube API data. It searches the web. It does NOT receive the full episode transcript (it doesn't need it and including it wastes tokens).
+System prompt for Call 1 — replace the existing Analyst prompt with this for the first call:
+You are the GrowthStack competitive research analyst. You receive a clip transcript and REAL YouTube Shorts data from the YouTube Data API.
+
+STEP 1: Identify 2-3 specific topic keywords from the clip. Not generic terms like "marketing" but specific concepts like "emotional targeting B2B" or "product positioning startups" or "AI copy differentiation."
+
+STEP 2: Analyze and report competitive data across platforms.
+
+## CORE INSIGHT
+One specific sentence describing what this clip is about. Not a topic label. A specific claim or tension.
+
+## COMPETITIVE RESEARCH
+
+### YouTube Shorts (from API data)
+Analyze the YouTube data provided. For each top-performing Short, document: the exact title, view count, tags used, what makes the title work (specificity, tension, keyword placement), and the channel size. Identify patterns across the top 5 performers. DO NOT search YouTube. Use the data provided.
+
+### Instagram Reels
+Search: [your topic keywords] site:instagram.com/reel
+For each result found: URL, caption text, hashtags used, approximate engagement if visible, how the content is framed.
+
+### TikTok
+Search: [your topic keywords] site:tiktok.com
+For each result found: URL, description, hashtags, approximate views if visible, hook structure.
+
+### LinkedIn Posts
+Search: [your topic keywords] site:linkedin.com/posts
+For each result found: URL, post text structure, how they frame video content, engagement signals.
+
+### Twitter/X
+Search: [your topic keywords] site:x.com
+For each result found: URL, tweet text, character count, hashtag usage, engagement if visible.
+
+### Cross-Platform Patterns
+Synthesize what you found across ALL platforms into actionable patterns:
+- Hook patterns: what works in the first 3 seconds across platforms
+- Titling patterns: common structures, lengths, keyword placement approaches
+- Tag and hashtag patterns: which tags appear repeatedly across top performers
+- Close patterns: how the best content ends (CTA, open loop, punchline, callback)
+- Thumbnail and visual patterns: text overlay style, color treatment, speaker framing
+
+### Thumbnail and Visual References
+Provide 3-5 direct URLs to thumbnails or visual references with a one-line note for the designer describing what to take from each (e.g., "bold text overlay on dark background" or "close-up with surprised expression").
+
+## RECOMMENDED TITLES
+2-3 title options based on competitive data. Insight-forward, not guest-name-forward. Under 60 characters preferred, 80 max. No clickbait. Each title should promise exactly what the clip delivers.
+
+## RECOMMENDED TAGS
+15-20 tags total: 5 baseline brand tags (marketing, growth marketing, growth strategy, AI marketing, B2B marketing) plus 10-12 contextual tags derived from the specific clip topic. Weight toward search volume over thematic precision. If a tag is technically accurate but nobody searches for it, replace it with a higher-volume adjacent term.
+
+## RECOMMENDED HASHTAGS
+5-8 Instagram hashtags. Mix of broad reach hashtags and niche topic hashtags. Pull from what top-performing similar content actually uses, based on your research.
+User message for Call 1:
+CLIP TRANSCRIPT:
+[clip transcript]
+
+YOUTUBE DATA (real API data with actual view counts and tags):
+[formatted YouTube data from the YouTube API function]
+
+Analyze the YouTube data directly. Then search Instagram, TikTok, LinkedIn, and Twitter using site: operators for competitive data on those platforms.
+This call MUST have web search enabled.
+Call 2: Surgery Analyst
+This call evaluates the clip structure. It receives the clip transcript, the full episode transcript, AND the output from Call 1. It does NOT search the web.
+System prompt for Call 2:
+You are the GrowthStack clip surgery specialist. You receive an episode transcript, a clip transcript, and competitive research findings.
+
+Your job is to evaluate the clip against a three-point structure and produce a revised transcript. The revised clip MUST be speakable in 60-80 seconds (approximately 150-200 words of spoken content). If the clip is currently longer than that, you must actively cut to hit this target.
+
+## CLIP SURGERY
+
+### Intrigue
+Does the clip open with immediate tension, curiosity, or a knowledge gap within the first 5 seconds? The viewer decides to stay or swipe in this window.
+
+If the current opening is weak (starts mid-thought, opens with filler, lacks a hook), look at the episode transcript 5-10 lines BEFORE the clip starts. Find a stronger opening line. This could be:
+- A provocative claim from the guest
+- A sharp question from the host that creates a gap
+- A surprising stat or counterintuitive statement
+- A contextual setup that makes the viewer need to hear what comes next
+
+Quote the exact line(s) to prepend. Explain why they work better than the current opening.
+
+### Value
+Does the clip deliver a clear, specific insight that the viewer can take away? If there is filler, hedging ("I think maybe..."), repetition (saying the same thing twice in different words), tangents, or throat-clearing, identify the exact lines to cut.
+
+The viewer should never wonder "what is the point" by the midpoint of the clip. If the value payload is buried, surface it by cutting what surrounds it.
+
+Remember the 60-80 second target. Cut aggressively toward that.
+
+### Close
+Does the clip end with resolution, a memorable statement, a punchy one-liner, or a strong stopping point? If it trails off, gets repetitive at the end, or just stops mid-thought, look at the episode transcript 5-10 lines AFTER the clip ends. Find a stronger closing line.
+
+The close should feel intentional. The viewer should think "that was worth watching" not "wait, is it over?"
+
+Quote the exact line(s) to append or substitute.
+
+## FINAL REVISED TRANSCRIPT
+Write the COMPLETE revised clip transcript with all your edits applied. This is the exact script the user will follow when editing in Riverside.
+
+Rules for the revised transcript:
+- Lines added from the episode transcript: start with [ADDED]
+- Lines removed from the original clip: start with [CUT]
+- Unchanged lines: no marker
+- Include EVERY line, whether changed or not
+- The total spoken content (excluding [CUT] lines) must be 150-200 words, which equals 60-80 seconds of speech
+- If the original clip is over 200 words, you MUST cut lines to hit the target
+- Count the words in your final output (excluding [CUT] lines) and verify it falls within 150-200 words
+- State the final word count at the end: "WORD COUNT: [X] words (approximately [Y] seconds)"
+User message for Call 2:
+COMPETITIVE RESEARCH FINDINGS:
+[full output from Call 1]
+
+FULL EPISODE TRANSCRIPT:
+[episode transcript]
+
+CLIP TRANSCRIPT:
+[clip transcript]
+
+Evaluate this clip against the three-point structure. Use the episode transcript to find better opening and closing lines if needed. The final revised transcript must be 150-200 words (60-80 seconds of speech).
+This call should NOT have web search enabled.
+How to combine the outputs
+After both calls complete:
+
+Store the output from Call 1 as the "research" output
+Store the output from Call 2 as the "surgery" output
+Combine both outputs (research + surgery) and display them together in the Brief (Analyst) tab
+Pass BOTH outputs to the Writer call (see existing Writer call, just change the user message to include both)
+
+Update the Writer's user message to:
+COMPETITIVE RESEARCH:
+[output from Call 1]
+
+CLIP SURGERY:
+[output from Call 2]
+
+TYPE: [VERTICAL or HORIZONTAL]
+[existing instruction for which outputs to produce]
+
+CLIP TRANSCRIPT:
+[clip transcript]
+Update the progress indicators
+The progress bar/status should now show these steps:
+
+"Searching YouTube, Instagram, TikTok, LinkedIn, Twitter..." (during Call 1)
+"Evaluating clip structure..." (during Call 2)
+"Writing titles, tags, posts..." (during Writer call)
+"Editorial review..." (during Editor call)
+
+What to test
+Run a clip analysis. Check:
+
+Brief (Analyst) tab shows BOTH competitive research AND clip surgery with a revised transcript
+The revised transcript has [ADDED] and [CUT] markers
+The revised transcript is approximately 150-200 words of spoken content
+The Writer's output references insights from both the research and the surgery
+Nothing else broke

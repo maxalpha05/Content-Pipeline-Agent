@@ -296,7 +296,7 @@ export default function RunDetail() {
   const isClipRun = run.type === 'clip';
   const stages = isClipRun ? [
     { id: 'researching', name: 'Research', complete: ['analyzing', 'writing', 'editing', 'review', 'approved'].includes(displayData.status || ''), active: displayData.status === 'researching' },
-    { id: 'analyzing', name: 'Surgery', complete: ['writing', 'editing', 'review', 'approved'].includes(displayData.status || ''), active: displayData.status === 'analyzing' },
+    { id: 'analyzing', name: 'Analyst', complete: ['writing', 'editing', 'review', 'approved'].includes(displayData.status || ''), active: displayData.status === 'analyzing' },
     { id: 'writing', name: 'Writer', complete: ['editing', 'review', 'approved'].includes(displayData.status || ''), active: displayData.status === 'writing' },
     { id: 'editing', name: 'Editor', complete: ['review', 'approved'].includes(displayData.status || ''), active: displayData.status === 'editing' },
   ] : [

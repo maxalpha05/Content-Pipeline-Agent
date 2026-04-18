@@ -14,6 +14,7 @@ export const pipelineRunsTable = pgTable("pipeline_runs", {
   writerOutput: text("writer_output"),
   editorOutput: text("editor_output"),
   feedbackHistory: text("feedback_history"),
+  youtubeData: text("youtube_data"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

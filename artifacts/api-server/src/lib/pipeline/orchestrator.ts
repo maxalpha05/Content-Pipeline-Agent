@@ -10,6 +10,11 @@ import {
   EDITOR_PROMPT,
   EDITOR_FEEDBACK_PROMPT,
 } from "./prompts";
+import {
+  searchYouTubeShorts,
+  formatYouTubeData,
+  extractTopicKeywords,
+} from "./youtube";
 import type { Response } from "express";
 
 type SendEvent = (data: Record<string, unknown>) => void;
@@ -169,7 +174,28 @@ export async function runClipPipeline(
 
     sendEvent({ type: "stage", stage: "analyzing", progress: 10 });
 
-    const analystInput = `FULL EPISODE TRANSCRIPT:\n${episodeTranscript}\n\nCLIP TRANSCRIPT (${clipType.toUpperCase()}):\n${clipTranscript}`;
+    // Fetch YouTube Shorts data before Analyst call
+    let youtubeDataJson: string | null = null;
+    let youtubePrefix = "";
+    const apiKey = process.env.YOUTUBE_API_KEY;
+    if (apiKey) {
+      const keywords = extractTopicKeywords(clipTranscript);
+      const youtubeResults = await searchYouTubeShorts(apiKey, keywords);
+      if (youtubeResults.length > 0) {
+        youtubeDataJson = JSON.stringify(youtubeResults);
+        youtubePrefix = `YOUTUBE DATA (real API data with actual view counts and tags):\n${formatYouTubeData(youtubeResults)}\n\n`;
+      }
+    }
+
+    // Store YouTube data immediately so frontend can display it during processing
+    if (youtubeDataJson) {
+      await db
+        .update(pipelineRunsTable)
+        .set({ youtubeData: youtubeDataJson, updatedAt: new Date() })
+        .where(eq(pipelineRunsTable.id, runId));
+    }
+
+    const analystInput = `${youtubePrefix}FULL EPISODE TRANSCRIPT:\n${episodeTranscript}\n\nCLIP TRANSCRIPT (${clipType.toUpperCase()}):\n${clipTranscript}`;
     const analystOutput = await callAgent(
       ANALYST_CLIP_PROMPT,
       analystInput,

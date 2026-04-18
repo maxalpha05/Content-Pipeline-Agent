@@ -86,6 +86,7 @@ export const GetPipelineRunResponse = zod.object({
   writerOutput: zod.string().nullish(),
   editorOutput: zod.string().nullish(),
   feedbackHistory: zod.string().nullish(),
+  youtubeData: zod.string().nullish(),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
 });

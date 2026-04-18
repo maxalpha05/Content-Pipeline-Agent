@@ -239,6 +239,8 @@ components:
           type: ["string", "null"]
         feedbackHistory:
           type: ["string", "null"]
+        youtubeData:
+          type: ["string", "null"]
         createdAt:
           type: string
           format: date-time

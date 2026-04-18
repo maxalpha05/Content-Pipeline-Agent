@@ -10,8 +10,81 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, CheckCircle2, Clock, Terminal, PenTool, Edit3, PlayCircle, Loader2, Send, RefreshCw, Trash2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Clock, Terminal, PenTool, Edit3, PlayCircle, Loader2, Send, RefreshCw, Trash2, Eye, ThumbsUp, MessageSquare, ExternalLink } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
+
+interface YouTubeShort {
+  title: string;
+  url: string;
+  channel: string;
+  views: number;
+  likes: number;
+  comments: number;
+  tags: string[];
+  description: string;
+  thumbnail: string;
+}
+
+function formatViewCount(n: number): string {
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
+  if (n >= 1_000) return (n / 1_000).toFixed(0) + "K";
+  return n.toString();
+}
+
+function YouTubeShortCard({ short }: { short: YouTubeShort }) {
+  return (
+    <a
+      href={short.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      data-testid={`youtube-short-card-${short.url}`}
+      className="group flex flex-col bg-card border border-border rounded-lg overflow-hidden hover:border-primary/40 hover:shadow-md transition-all duration-200"
+    >
+      <div className="relative aspect-video bg-muted overflow-hidden">
+        {short.thumbnail ? (
+          <img
+            src={short.thumbnail}
+            alt={short.title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">No thumbnail</div>
+        )}
+        <div className="absolute top-2 right-2 bg-black/70 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded flex items-center gap-1">
+          <ExternalLink className="h-2.5 w-2.5" />
+          Shorts
+        </div>
+      </div>
+      <div className="p-3 flex flex-col gap-2 flex-1">
+        <p className="text-xs font-semibold text-foreground leading-snug line-clamp-2">{short.title}</p>
+        <p className="text-[10px] text-muted-foreground">{short.channel}</p>
+        <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <Eye className="h-2.5 w-2.5" />
+            {formatViewCount(short.views)}
+          </span>
+          <span className="flex items-center gap-1">
+            <ThumbsUp className="h-2.5 w-2.5" />
+            {formatViewCount(short.likes)}
+          </span>
+          <span className="flex items-center gap-1">
+            <MessageSquare className="h-2.5 w-2.5" />
+            {formatViewCount(short.comments)}
+          </span>
+        </div>
+        {short.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-auto pt-1">
+            {short.tags.slice(0, 5).map((tag) => (
+              <span key={tag} className="text-[9px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    </a>
+  );
+}
 
 // Helper to parse the AI output if it comes back as stringified JSON or plain text
 const renderFormattedOutput = (output: string | null | undefined, type: string) => {
@@ -354,6 +427,16 @@ export default function RunDetail() {
               const outputKey = `${stage}Output` as keyof typeof displayData;
               const content = displayData[outputKey];
               const isStageActive = displayData.status === stage;
+
+              // Parse YouTube data for the analyst tab on clip runs
+              let youtubeShorts: YouTubeShort[] | null = null;
+              if (stage === 'analyst' && run.type === 'clip' && run.youtubeData) {
+                try {
+                  youtubeShorts = JSON.parse(run.youtubeData) as YouTubeShort[];
+                } catch {
+                  youtubeShorts = null;
+                }
+              }
               
               return (
                 <TabsContent key={stage} value={stage} className="mt-0 focus-visible:outline-none focus-visible:ring-0">
@@ -388,7 +471,22 @@ export default function RunDetail() {
                         )}
                       </div>
                     </CardHeader>
-                    <CardContent className="p-6">
+                    <CardContent className="p-6 space-y-6">
+                      {/* YouTube Shorts Section (analyst tab, clip runs only) */}
+                      {stage === 'analyst' && youtubeShorts && youtubeShorts.length > 0 && (
+                        <div>
+                          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                            Top-Performing YouTube Shorts — Topic Reference
+                          </h3>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                            {youtubeShorts.map((short) => (
+                              <YouTubeShortCard key={short.url} short={short} />
+                            ))}
+                          </div>
+                          <Separator className="mt-6" />
+                        </div>
+                      )}
+
                       {content ? (
                         <div className="relative group">
                           {renderFormattedOutput(content as string, stage)}

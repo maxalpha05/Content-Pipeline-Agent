@@ -1,0 +1,81 @@
+Step 1: Store the API key
+Add this as an environment variable / secret in Replit:
+Variable name: YOUTUBE_API_KEY
+Value: AIzaSyBPlN0UUN6GS1XOZjEFl6kfgTXU2CWNSik
+Step 2: Add the YouTube API functions
+Add these three functions to the backend/server code. Adapt the syntax to match whatever language the app uses (JavaScript, TypeScript, Python, etc.):
+javascript// Function 1: Search YouTube for top-performing Shorts on a topic
+async function searchYouTubeShorts(apiKey, query) {
+  try {
+    const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query + ' #shorts')}&type=video&videoDuration=short&maxResults=8&order=viewCount&key=${apiKey}`;
+    const searchRes = await fetch(searchUrl);
+    if (!searchRes.ok) return [];
+    const searchData = await searchRes.json();
+    if (!searchData.items || searchData.items.length === 0) return [];
+
+    const videoIds = searchData.items.map(item => item.id.videoId).join(',');
+    const detailUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&id=${videoIds}&key=${apiKey}`;
+    const detailRes = await fetch(detailUrl);
+    if (!detailRes.ok) return [];
+    const detailData = await detailRes.json();
+
+    return detailData.items.map(v => ({
+      title: v.snippet.title,
+      url: 'https://youtube.com/shorts/' + v.id,
+      channel: v.snippet.channelTitle,
+      views: parseInt(v.statistics.viewCount || '0'),
+      likes: parseInt(v.statistics.likeCount || '0'),
+      comments: parseInt(v.statistics.commentCount || '0'),
+      tags: (v.snippet.tags || []).slice(0, 15),
+      description: (v.snippet.description || '').substring(0, 300),
+      thumbnail: v.snippet.thumbnails.high ? v.snippet.thumbnails.high.url : ''
+    })).sort((a, b) => b.views - a.views);
+  } catch (e) {
+    console.error('YouTube API error:', e);
+    return [];
+  }
+}
+
+// Function 2: Format YouTube results as readable text for the AI prompt
+function formatYouTubeData(results) {
+  if (!results || results.length === 0) return 'No YouTube Shorts data available.';
+  return results.map(function(r, i) {
+    var viewStr = r.views >= 1000000 ? (r.views / 1000000).toFixed(1) + 'M' : r.views >= 1000 ? (r.views / 1000).toFixed(0) + 'K' : r.views.toString();
+    return [
+      (i + 1) + '. ' + r.title,
+      '   URL: ' + r.url,
+      '   Channel: ' + r.channel,
+      '   Views: ' + viewStr + ' | Likes: ' + r.likes + ' | Comments: ' + r.comments,
+      '   Tags: ' + (r.tags.length > 0 ? r.tags.join(', ') : 'none visible'),
+      '   Thumbnail: ' + r.thumbnail
+    ].join('\n');
+  }).join('\n\n');
+}
+
+// Function 3: Extract topic keywords from clip text
+function extractTopicKeywords(clipText) {
+  var stopwords = ['that','this','with','from','have','been','they','their','them','what','when','where','which','will','would','could','should','about','after','before','between','through','during','also','just','like','more','most','much','some','than','then','very','well','were','your','into','over','only','other','such','know','think','going','right','people','really','because','something','actually'];
+  var words = clipText.toLowerCase().replace(/[^a-z\s]/g, '').split(/\s+/).filter(function(w) { return w.length > 3 && stopwords.indexOf(w) === -1; });
+  var freq = {};
+  words.forEach(function(w) { freq[w] = (freq[w] || 0) + 1; });
+  return Object.entries(freq).sort(function(a, b) { return b[1] - a[1]; }).slice(0, 5).map(function(e) { return e[0]; }).join(' ');
+}
+Step 3: Wire it into the clip analysis pipeline
+In the Video Clip processing flow, BEFORE the Analyst API call runs, add these steps:
+
+Call extractTopicKeywords(clipTranscript) to get topic keywords from the clip
+Call searchYouTubeShorts(process.env.YOUTUBE_API_KEY, keywords) to get YouTube data
+Call formatYouTubeData(results) to format it as text
+Prepend this text to whatever user message is currently being sent to the Analyst, with this header:
+
+YOUTUBE DATA (real API data with actual view counts and tags):
+[formatted YouTube data here]
+Do NOT change the Analyst prompt itself. Just add the YouTube data as additional input to the existing Analyst call.
+Step 4: Display YouTube data in the Brief tab
+In the Brief (Analyst) tab, if YouTube data is available, display it visually: show each YouTube Short as a card with the thumbnail image, title, view count, likes, and tags. This is in addition to whatever the Analyst's text output already shows.
+What to test
+After making these changes, run a clip analysis. Check the Brief (Analyst) tab. You should see:
+
+YouTube Shorts data with real view counts and tags
+The Analyst's text output should reference the YouTube data
+Everything else should work exactly as before

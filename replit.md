@@ -32,9 +32,21 @@ A content repurposing pipeline for the GrowthStack podcast. Takes episode transc
 - **Clip-level (vertical)**: Full transcript + clip → YouTube Shorts title/tags + Instagram hashtags
 - **Clip-level (horizontal)**: Full transcript + clip → LinkedIn post (Arnav's voice) + Twitter post (GrowthStack brand)
 
+### YouTube Shorts Intelligence (Clip Runs)
+For clip-type pipeline runs, before the Analyst call the backend:
+1. Extracts topic keywords from the clip transcript (`extractTopicKeywords`)
+2. Searches YouTube for top-performing Shorts on that topic (`searchYouTubeShorts`)
+3. Formats the results as structured text and prepends it to the Analyst's input
+4. Stores the raw JSON in the `youtube_data` column so the frontend can display it
+
+The Brief (Analyst) tab in RunDetail shows YouTube Shorts cards (thumbnail, title, views, likes, tags) above the Analyst text for clip runs where YouTube data was found.
+
+Env var required: `YOUTUBE_API_KEY` (stored as shared env var)
+
 ### Key Files
 - `artifacts/api-server/src/lib/pipeline/prompts.ts` — Agent system prompts
 - `artifacts/api-server/src/lib/pipeline/orchestrator.ts` — Pipeline orchestration logic
+- `artifacts/api-server/src/lib/pipeline/youtube.ts` — YouTube Shorts search + formatting utilities
 - `artifacts/api-server/src/routes/pipeline/index.ts` — API routes
 - `lib/db/src/schema/pipeline-runs.ts` — Database schema
 - `artifacts/growthstack/` — React frontend

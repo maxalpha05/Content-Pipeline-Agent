@@ -106,6 +106,8 @@ export interface PipelineRunDetail {
   editorOutput?: string | null;
   /** @nullable */
   feedbackHistory?: string | null;
+  /** @nullable */
+  youtubeData?: string | null;
   createdAt: string;
   updatedAt: string;
 }

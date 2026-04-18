@@ -425,41 +425,44 @@ function ThumbnailRefCard({ item, index }: { item: { url: string; note: string }
 
 interface IntelEntry { headline: string; details: string[]; }
 interface PatternEntry { label: string; body: string; }
-interface PieceEntry { content: string; url: string; whyPicked: string; analysis: string; }
-
-// Parses the new structured per-piece format (Content / URL / Why picked / Analysis / ---)
-function parsePlatformPieces(text: string): PieceEntry[] {
-  if (!text.trim()) return [];
-
-  // Split on --- separator or #### PIECE N headers (forward-compatible with both formats)
-  const chunks = text.split(/\n-{3,}\n?|\n#{3,4}\s*PIECE\s*\d+\n?/i);
-  const pieces: PieceEntry[] = [];
-
-  for (const chunk of chunks) {
-    if (!chunk.trim()) continue;
-
-    // Extract each labelled field, allowing multi-line values until the next label
-    const extractField = (label: string): string => {
-      const re = new RegExp(`^${label}:\\s*([\\s\\S]*?)(?=\\n(?:Content|URL|Why picked|Analysis):|\\n-{3,}|$)`, 'im');
-      const m = chunk.match(re);
-      return m ? m[1].trim() : '';
-    };
-
-    const content   = extractField('Content');
-    const url       = extractField('URL');
-    const whyPicked = extractField('Why picked');
-    const analysis  = extractField('Analysis');
-
-    if (content || url) {
-      pieces.push({ content, url, whyPicked, analysis });
-    }
-  }
-
-  return pieces;
-}
 
 function parseIntelBullets(text: string): IntelEntry[] {
   if (!text.trim()) return [];
+
+  // Detect the structured format produced by the Task #6 research prompt
+  // (Content: / URL: / Why picked: / Analysis: blocks separated by ---)
+  if (/^Content:/im.test(text)) {
+    const blocks = text.split(/\n-{3,}\n?/);
+    const entries: IntelEntry[] = [];
+
+    for (const block of blocks) {
+      if (!block.trim()) continue;
+
+      const extractField = (label: string): string => {
+        const re = new RegExp(`^${label}:\\s*([\\s\\S]*?)(?=\\n(?:Content|URL|Why picked|Analysis):|\\n-{3,}|$)`, 'im');
+        const m = block.match(re);
+        return m ? m[1].trim() : '';
+      };
+
+      const content   = extractField('Content');
+      const url       = extractField('URL');
+      const whyPicked = extractField('Why picked');
+      const analysis  = extractField('Analysis');
+
+      if (!content && !url) continue;
+
+      const details: string[] = [];
+      if (url)       details.push(`URL: ${url}`);
+      if (whyPicked) details.push(`Why picked: ${whyPicked}`);
+      if (analysis)  details.push(`Analysis: ${analysis}`);
+
+      entries.push({ headline: content || url, details });
+    }
+
+    if (entries.length > 0) return entries;
+  }
+
+  // Original bullet parser (unchanged)
   const lines = text.split("\n");
   const entries: IntelEntry[] = [];
   let current: IntelEntry | null = null;
@@ -545,53 +548,6 @@ function IntelEntryCard({ headline, details }: IntelEntry) {
   );
 }
 
-function PieceCard({ content, url, whyPicked, analysis, index }: PieceEntry & { index: number }) {
-  const clean = (s: string) => s.replace(/\*\*(.*?)\*\*/g, "$1");
-  const href = url ? (url.startsWith('http') ? url : `https://${url}`) : null;
-  return (
-    <div className="border border-border/60 rounded-lg bg-card overflow-hidden">
-      <div className="px-4 py-3 bg-muted/20 border-b border-border/40">
-        <div className="flex items-start gap-2">
-          <span className="text-[10px] font-bold text-muted-foreground/60 shrink-0 mt-[3px] tabular-nums">#{index + 1}</span>
-          <div className="flex-1 min-w-0">
-            <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-0.5">Content piece</p>
-            <p className="text-sm font-medium text-foreground leading-snug">{clean(content) || "Content piece"}</p>
-          </div>
-        </div>
-        {href && (
-          <div className="mt-2">
-            <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-0.5">URL</p>
-            <a
-              href={href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-xs text-primary hover:underline break-all"
-            >
-              {url}
-              <ExternalLink className="h-2.5 w-2.5 shrink-0" />
-            </a>
-          </div>
-        )}
-      </div>
-      {(whyPicked || analysis) && (
-        <div className="px-4 py-3 space-y-2.5">
-          {whyPicked && (
-            <div>
-              <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Why picked</p>
-              <p className="text-xs text-muted-foreground leading-relaxed">{clean(whyPicked)}</p>
-            </div>
-          )}
-          {analysis && (
-            <div>
-              <p className="text-[9px] font-bold text-amber-600 dark:text-amber-500 uppercase tracking-widest mb-1">Analysis</p>
-              <p className="text-xs text-foreground leading-relaxed">{clean(analysis)}</p>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
 
 const PATTERN_COLORS: Record<string, string> = {
   hook: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-400",
@@ -632,8 +588,7 @@ function CompetitivePlatform({
   const hasContent = content.trim() || (youtubeShorts && youtubeShorts.length > 0);
   if (!hasContent) return null;
 
-  const pieces        = !isCrossPlatform ? parsePlatformPieces(content) : [];
-  const intelEntries  = !isCrossPlatform && pieces.length === 0 ? parseIntelBullets(content) : [];
+  const intelEntries   = !isCrossPlatform ? parseIntelBullets(content) : [];
   const patternEntries = isCrossPlatform ? parseCrossPlatformPatterns(content) : [];
 
   return (
@@ -666,20 +621,14 @@ function CompetitivePlatform({
               {patternEntries.map((p, i) => <PatternRow key={i} {...p} />)}
             </div>
           )}
-          {/* Platform-specific entries: structured piece cards (new format) */}
-          {!isCrossPlatform && pieces.length > 0 && (
-            <div className="space-y-2.5">
-              {pieces.map((p, i) => <PieceCard key={i} {...p} index={i} />)}
-            </div>
-          )}
-          {/* Fallback: legacy bullet cards if piece parsing returned nothing */}
-          {!isCrossPlatform && pieces.length === 0 && intelEntries.length > 0 && (
+          {/* Platform-specific entries: intel cards */}
+          {!isCrossPlatform && intelEntries.length > 0 && (
             <div className="space-y-2">
               {intelEntries.map((e, i) => <IntelEntryCard key={i} {...e} />)}
             </div>
           )}
-          {/* Fallback: raw text if all parsing produced nothing */}
-          {content && !isCrossPlatform && pieces.length === 0 && intelEntries.length === 0 && (
+          {/* Fallback: raw text if parsing produced nothing */}
+          {content && !isCrossPlatform && intelEntries.length === 0 && (
             <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{content}</p>
           )}
           {content && isCrossPlatform && patternEntries.length === 0 && (

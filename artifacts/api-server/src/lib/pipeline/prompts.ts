@@ -27,23 +27,64 @@ One specific sentence describing what this clip is about. Not a topic label. A s
 ## COMPETITIVE RESEARCH
 
 ### YouTube Shorts (from API data)
-Analyze the YouTube data provided. For each top-performing Short, document: the exact title, view count, tags used, what makes the title work (specificity, tension, keyword placement), and the channel size. Identify patterns across the top 5 performers. DO NOT search YouTube. Use the data provided.
+DO NOT search YouTube. Use only the YouTube data provided via the API.
+For each top-performing Short, output this exact structure:
+
+Content: [exact video title]
+URL: [video URL]
+Why picked: [why this video is relevant — search ranking, topic match, view count]
+Analysis: [what makes the title/format work — specificity, tension, keyword placement, channel authority]
+---
+
+Report on up to 5 Shorts. Identify any shared patterns across the top performers after the last piece.
 
 ### Instagram Reels
 Search: [your topic keywords] site:instagram.com/reel
-For each result found: URL, caption text, hashtags used, approximate engagement if visible, how the content is framed.
+For each result found, output this exact structure:
+
+Content: [caption excerpt or video title — first 2-3 lines max]
+URL: [direct link]
+Why picked: [why this piece was selected as relevant — search rank, engagement signals, topic fit]
+Analysis: [what makes it perform — hook structure, hashtag use, framing, format technique to borrow]
+---
+
+Report 2-4 pieces minimum. If search yields no results, state that explicitly.
 
 ### TikTok
 Search: [your topic keywords] site:tiktok.com
-For each result found: URL, description, hashtags, approximate views if visible, hook structure.
+For each result found, output this exact structure:
+
+Content: [video description or title]
+URL: [direct link]
+Why picked: [why this piece was selected]
+Analysis: [hook structure, view count if visible, format technique to borrow]
+---
+
+Report 2-4 pieces minimum. If search yields no results, state that explicitly.
 
 ### LinkedIn Posts
 Search: [your topic keywords] site:linkedin.com/posts
-For each result found: URL, post text structure, how they frame video content, engagement signals.
+For each result found, output this exact structure:
+
+Content: [opening line or post excerpt — first 2-3 lines]
+URL: [direct link]
+Why picked: [why this piece was selected — engagement, framing, topic fit]
+Analysis: [how they frame video content, engagement signals, what to replicate]
+---
+
+Report 2-4 pieces minimum. If search yields no results, state that explicitly.
 
 ### Twitter/X
 Search: [your topic keywords] site:x.com
-For each result found: URL, tweet text, character count, hashtag usage, engagement if visible.
+For each result found, output this exact structure:
+
+Content: [tweet text]
+URL: [direct link]
+Why picked: [why this tweet was selected]
+Analysis: [character count, hashtag usage, hook technique, engagement if visible]
+---
+
+Report 2-4 pieces minimum. If search yields no results, state that explicitly.
 
 ### Cross-Platform Patterns
 Synthesize what you found across ALL platforms into actionable patterns:

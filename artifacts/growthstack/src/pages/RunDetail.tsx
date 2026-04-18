@@ -98,6 +98,35 @@ const renderFormattedOutput = (output: string | null | undefined, type: string) 
   );
 };
 
+// Splits episode editor output into quality review section and final content package.
+// The quality review is everything before the first "## SUBSTACK ARTICLE" heading.
+function parseEditorOutput(text: string): { reviewSummary: string; finalContent: string } | null {
+  if (!text.trim()) return null;
+  // Find the start of the actual content package (## SUBSTACK ARTICLE heading)
+  const m = text.match(/^##\s+SUBSTACK\s+ARTICLE/im);
+  if (!m || m.index == null) return null;
+  const splitPoint = m.index;
+  const reviewPart = text.slice(0, splitPoint).trim();
+  const contentPart = text.slice(splitPoint).trim();
+  // Only split if we have a non-trivial review section
+  if (!reviewPart || reviewPart.length < 8) return null;
+  return { reviewSummary: reviewPart, finalContent: contentPart };
+}
+
+// Renders individual review lines with FINAL (green) or REVISED (amber) visual accents
+function QualityReviewLine({ line }: { line: string }) {
+  const isFinal   = /\bFINAL\b/.test(line) && !/REVISED/.test(line);
+  const isRevised = /\bREVISED\b/.test(line);
+  return (
+    <div className={`flex items-start gap-2 text-sm leading-relaxed py-0.5 ${isRevised ? 'text-amber-700 dark:text-amber-400' : isFinal ? 'text-emerald-700 dark:text-emerald-400' : 'text-muted-foreground'}`}>
+      {isFinal   && <CheckCircle2 className="h-3.5 w-3.5 shrink-0 mt-[3px] text-emerald-500" />}
+      {isRevised && <span className="shrink-0 mt-[3px] h-3.5 w-3.5 flex items-center justify-center text-[10px] font-bold text-amber-600">~</span>}
+      {!isFinal && !isRevised && <span className="shrink-0 w-3.5" />}
+      <span>{line}</span>
+    </div>
+  );
+}
+
 export default function RunDetail() {
   const { id } = useParams();
   const runId = parseInt(id || "0", 10);
@@ -458,6 +487,11 @@ export default function RunDetail() {
                   youtubeShorts = null;
                 }
               }
+
+              // Parse editor output into quality review + final content (episode runs only)
+              const editorParsed = stage === 'editor' && run.type === 'episode' && content
+                ? parseEditorOutput(content as string)
+                : null;
               
               return (
                 <TabsContent key={stage} value={stage} className="mt-0 focus-visible:outline-none focus-visible:ring-0">
@@ -509,23 +543,43 @@ export default function RunDetail() {
                       )}
 
                       {content ? (
-                        <div className="relative group">
-                          {renderFormattedOutput(content as string, stage)}
-                          
-                          {/* Inline Feedback Prompt (appears on hover over content block if not active) */}
-                          {(!isProcessing && displayData.status !== 'approved' && stage === 'editor' && !feedbackTarget) && (
-                            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
-                                className="bg-background shadow-sm h-8 border-dashed"
-                                onClick={() => setFeedbackTarget('editorOutput')}
-                              >
-                                <Edit3 className="h-3 w-3 mr-2" /> Give Feedback
-                              </Button>
+                        <>
+                          {/* Quality Review box — episode editor only, when parsing succeeds */}
+                          {editorParsed && (
+                            <div className="rounded-lg border border-amber-200/70 bg-amber-50/50 dark:border-amber-900/40 dark:bg-amber-950/20 overflow-hidden mb-2">
+                              <div className="flex items-center gap-2 px-4 py-2.5 border-b border-amber-200/50 dark:border-amber-900/30 bg-amber-100/40 dark:bg-amber-950/30">
+                                <CheckCircle2 className="h-3.5 w-3.5 text-amber-600 dark:text-amber-500" />
+                                <p className="text-[10px] font-bold text-amber-800 dark:text-amber-400 uppercase tracking-wider">Quality Review</p>
+                              </div>
+                              <div className="px-4 py-3 space-y-0.5">
+                                {editorParsed.reviewSummary.split('\n').filter(l => l.trim()).map((line, i) => (
+                                  <QualityReviewLine key={i} line={line} />
+                                ))}
+                              </div>
                             </div>
                           )}
-                        </div>
+
+                          <div className="relative group">
+                            {renderFormattedOutput(
+                              editorParsed ? editorParsed.finalContent : content as string,
+                              stage
+                            )}
+                            
+                            {/* Inline Feedback Prompt (appears on hover over content block if not active) */}
+                            {(!isProcessing && displayData.status !== 'approved' && stage === 'editor' && !feedbackTarget) && (
+                              <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  className="bg-background shadow-sm h-8 border-dashed"
+                                  onClick={() => setFeedbackTarget('editorOutput')}
+                                >
+                                  <Edit3 className="h-3 w-3 mr-2" /> Give Feedback
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </>
                       ) : (
                         <div className="h-48 flex items-center justify-center text-muted-foreground text-sm italic">
                           Awaiting previous stages to complete...

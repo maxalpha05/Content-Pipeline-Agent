@@ -393,7 +393,6 @@ function parseIntelBullets(text: string): IntelEntry[] {
 function parseCrossPlatformPatterns(text: string): PatternEntry[] {
   if (!text.trim()) return [];
   const results: PatternEntry[] = [];
-  // Match lines like "- Hook patterns: ..." or "- Titling patterns: ..."
   const lines = text.split("\n");
   let current: PatternEntry | null = null;
 
@@ -401,9 +400,12 @@ function parseCrossPlatformPatterns(text: string): PatternEntry[] {
     const trimmed = raw.trim();
     if (!trimmed) continue;
 
-    const labelMatch = trimmed.match(/^[-*]?\s*([\w][^:]{2,40}):\s*(.*)$/);
     const isTopLevel = /^[-*]\s/.test(raw) && !/^\s+/.test(raw);
     const isSubBullet = /^\s+[-*]\s/.test(raw);
+
+    // Strip markdown bold (**) so "**Hook patterns:**" matches as "Hook patterns:"
+    const stripped = trimmed.replace(/\*\*/g, "");
+    const labelMatch = stripped.match(/^[-*]?\s*([\w][^:]{2,50}):\s*(.*)$/);
 
     if (labelMatch && isTopLevel) {
       current = { label: labelMatch[1].trim(), body: labelMatch[2].trim() };
@@ -416,7 +418,8 @@ function parseCrossPlatformPatterns(text: string): PatternEntry[] {
     }
   }
 
-  return results.filter((e) => e.label && e.body);
+  // Keep entries even with empty body — label-only rows are still useful
+  return results.filter((e) => e.label);
 }
 
 // ─── Intel entry components ───────────────────────────────────────────────────
@@ -459,7 +462,11 @@ function PatternRow({ label, body }: PatternEntry) {
       <span className={`text-[9px] font-bold px-2 py-0.5 rounded shrink-0 mt-0.5 uppercase tracking-wide whitespace-nowrap ${color}`}>
         {shortLabel}
       </span>
-      <p className="text-sm text-foreground leading-relaxed">{body}</p>
+      {body ? (
+        <p className="text-sm text-foreground leading-relaxed">{body}</p>
+      ) : (
+        <p className="text-sm text-muted-foreground italic">No detail captured.</p>
+      )}
     </div>
   );
 }

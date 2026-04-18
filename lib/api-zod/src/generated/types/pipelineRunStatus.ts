@@ -11,6 +11,7 @@ export type PipelineRunStatus =
 
 export const PipelineRunStatus = {
   pending: "pending",
+  researching: "researching",
   analyzing: "analyzing",
   writing: "writing",
   editing: "editing",

@@ -125,7 +125,7 @@ export default function RunDetail() {
       // Poll if not completed
       refetchInterval: (query) => {
         const status = query.state.data?.status;
-        return (status && ['pending', 'analyzing', 'writing', 'editing'].includes(status)) ? 5000 : false;
+        return (status && ['pending', 'researching', 'analyzing', 'writing', 'editing'].includes(status)) ? 5000 : false;
       }
     }
   });
@@ -135,7 +135,7 @@ export default function RunDetail() {
     if (!runId) return;
 
     // Only connect SSE if the run is currently processing
-    const isProcessing = run?.status && ['pending', 'analyzing', 'writing', 'editing'].includes(run.status);
+    const isProcessing = run?.status && ['pending', 'researching', 'analyzing', 'writing', 'editing'].includes(run.status);
     if (!isProcessing && !isSubmittingFeedback) return;
 
     const eventSource = new EventSource(`/api/pipeline/runs/${runId}/stream`);
@@ -277,7 +277,8 @@ export default function RunDetail() {
 
   const getStatusDisplay = (status: string | undefined) => {
     switch (status) {
-      case "analyzing": return { label: "Analyst Working", icon: Terminal, color: "text-blue-500", bg: "bg-blue-500/10 border-blue-200" };
+      case "researching": return { label: "Researching", icon: Terminal, color: "text-sky-500", bg: "bg-sky-500/10 border-sky-200" };
+      case "analyzing": return { label: "Evaluating Clip", icon: Terminal, color: "text-blue-500", bg: "bg-blue-500/10 border-blue-200" };
       case "writing": return { label: "Writer Working", icon: PenTool, color: "text-purple-500", bg: "bg-purple-500/10 border-purple-200" };
       case "editing": return { label: "Editor Working", icon: Edit3, color: "text-pink-500", bg: "bg-pink-500/10 border-pink-200" };
       case "review": return { label: "Needs Review", icon: Clock, color: "text-amber-500", bg: "bg-amber-500/10 border-amber-200" };
@@ -289,10 +290,16 @@ export default function RunDetail() {
 
   const statusInfo = getStatusDisplay(displayData.status);
   const StatusIcon = statusInfo.icon;
-  const isProcessing = ['pending', 'analyzing', 'writing', 'editing'].includes(displayData.status || '');
+  const isProcessing = ['pending', 'researching', 'analyzing', 'writing', 'editing'].includes(displayData.status || '');
 
-  // Pipeline Stages Visualization
-  const stages = [
+  // Pipeline Stages Visualization — clip runs have 4 stages, episode runs have 3
+  const isClipRun = run.type === 'clip';
+  const stages = isClipRun ? [
+    { id: 'researching', name: 'Research', complete: ['analyzing', 'writing', 'editing', 'review', 'approved'].includes(displayData.status || ''), active: displayData.status === 'researching' },
+    { id: 'analyzing', name: 'Surgery', complete: ['writing', 'editing', 'review', 'approved'].includes(displayData.status || ''), active: displayData.status === 'analyzing' },
+    { id: 'writing', name: 'Writer', complete: ['editing', 'review', 'approved'].includes(displayData.status || ''), active: displayData.status === 'writing' },
+    { id: 'editing', name: 'Editor', complete: ['review', 'approved'].includes(displayData.status || ''), active: displayData.status === 'editing' },
+  ] : [
     { id: 'analyzing', name: 'Analyst', complete: ['writing', 'editing', 'review', 'approved'].includes(displayData.status || ''), active: displayData.status === 'analyzing' },
     { id: 'writing', name: 'Writer', complete: ['editing', 'review', 'approved'].includes(displayData.status || ''), active: displayData.status === 'writing' },
     { id: 'editing', name: 'Editor', complete: ['review', 'approved'].includes(displayData.status || ''), active: displayData.status === 'editing' },

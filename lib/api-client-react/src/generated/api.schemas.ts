@@ -34,6 +34,7 @@ export type PipelineRunStatus =
 
 export const PipelineRunStatus = {
   pending: "pending",
+  researching: "researching",
   analyzing: "analyzing",
   writing: "writing",
   editing: "editing",
@@ -79,6 +80,7 @@ export type PipelineRunDetailStatus =
 
 export const PipelineRunDetailStatus = {
   pending: "pending",
+  researching: "researching",
   analyzing: "analyzing",
   writing: "writing",
   editing: "editing",
@@ -100,6 +102,10 @@ export interface PipelineRunDetail {
   clipTranscript?: string | null;
   /** @nullable */
   analystOutput?: string | null;
+  /** @nullable */
+  researchOutput?: string | null;
+  /** @nullable */
+  surgeryOutput?: string | null;
   /** @nullable */
   writerOutput?: string | null;
   /** @nullable */

@@ -30,6 +30,7 @@ export const ListPipelineRunsResponseItem = zod.object({
     .nullish(),
   status: zod.enum([
     "pending",
+    "researching",
     "analyzing",
     "writing",
     "editing",
@@ -72,6 +73,7 @@ export const GetPipelineRunResponse = zod.object({
     .nullish(),
   status: zod.enum([
     "pending",
+    "researching",
     "analyzing",
     "writing",
     "editing",
@@ -83,6 +85,8 @@ export const GetPipelineRunResponse = zod.object({
   episodeTranscript: zod.string(),
   clipTranscript: zod.string().nullish(),
   analystOutput: zod.string().nullish(),
+  researchOutput: zod.string().nullish(),
+  surgeryOutput: zod.string().nullish(),
   writerOutput: zod.string().nullish(),
   editorOutput: zod.string().nullish(),
   feedbackHistory: zod.string().nullish(),
@@ -136,6 +140,7 @@ export const ApprovePipelineRunResponse = zod.object({
     .nullish(),
   status: zod.enum([
     "pending",
+    "researching",
     "analyzing",
     "writing",
     "editing",
@@ -170,6 +175,7 @@ export const GetPipelineDashboardResponse = zod.object({
         .nullish(),
       status: zod.enum([
         "pending",
+        "researching",
         "analyzing",
         "writing",
         "editing",

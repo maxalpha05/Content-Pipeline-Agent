@@ -196,7 +196,7 @@ components:
           enum: [vertical, horizontal, null]
         status:
           type: string
-          enum: [pending, analyzing, writing, editing, review, approved, failed]
+          enum: [pending, researching, analyzing, writing, editing, review, approved, failed]
         title:
           type: ["string", "null"]
         createdAt:
@@ -224,7 +224,7 @@ components:
           enum: [vertical, horizontal, null]
         status:
           type: string
-          enum: [pending, analyzing, writing, editing, review, approved, failed]
+          enum: [pending, researching, analyzing, writing, editing, review, approved, failed]
         title:
           type: ["string", "null"]
         episodeTranscript:
@@ -232,6 +232,10 @@ components:
         clipTranscript:
           type: ["string", "null"]
         analystOutput:
+          type: ["string", "null"]
+        researchOutput:
+          type: ["string", "null"]
+        surgeryOutput:
           type: ["string", "null"]
         writerOutput:
           type: ["string", "null"]

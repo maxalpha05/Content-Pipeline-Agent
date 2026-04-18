@@ -23,6 +23,10 @@ export interface PipelineRunDetail {
   /** @nullable */
   analystOutput?: string | null;
   /** @nullable */
+  researchOutput?: string | null;
+  /** @nullable */
+  surgeryOutput?: string | null;
+  /** @nullable */
   writerOutput?: string | null;
   /** @nullable */
   editorOutput?: string | null;

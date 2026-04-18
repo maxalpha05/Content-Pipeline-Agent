@@ -4,7 +4,8 @@ import { eq } from "drizzle-orm";
 import { logger } from "../logger";
 import {
   ANALYST_EPISODE_PROMPT,
-  ANALYST_CLIP_PROMPT,
+  RESEARCH_ANALYST_PROMPT,
+  SURGERY_ANALYST_PROMPT,
   WRITER_EPISODE_PROMPT,
   WRITER_CLIP_PROMPT,
   EDITOR_PROMPT,
@@ -31,6 +32,43 @@ async function callAgent(
     model,
     max_tokens: 4096,
     system: systemPrompt,
+    messages: [{ role: "user", content: userMessage }],
+  });
+
+  for await (const event of stream) {
+    if (
+      event.type === "content_block_delta" &&
+      event.delta.type === "text_delta"
+    ) {
+      fullResponse += event.delta.text;
+      if (sendEvent) {
+        sendEvent({ type: "chunk", content: event.delta.text });
+      }
+    }
+  }
+
+  return fullResponse;
+}
+
+async function callAgentWithSearch(
+  systemPrompt: string,
+  userMessage: string,
+  model: string = "claude-sonnet-4-6",
+  sendEvent?: SendEvent,
+): Promise<string> {
+  let fullResponse = "";
+
+  const stream = anthropic.messages.stream({
+    model,
+    max_tokens: 4096,
+    system: systemPrompt,
+    tools: [
+      {
+        type: "web_search_20250305" as const,
+        name: "web_search",
+        max_uses: 5,
+      },
+    ],
     messages: [{ role: "user", content: userMessage }],
   });
 
@@ -167,27 +205,29 @@ export async function runClipPipeline(
 
   try {
     const title = generateTitle("Clip", clipTranscript);
+
+    // --- STAGE 1: Fetch YouTube data + Research Analyst (web search enabled) ---
     await db
       .update(pipelineRunsTable)
-      .set({ status: "analyzing", title, updatedAt: new Date() })
+      .set({ status: "researching", title, updatedAt: new Date() })
       .where(eq(pipelineRunsTable.id, runId));
 
-    sendEvent({ type: "stage", stage: "analyzing", progress: 10 });
+    sendEvent({ type: "stage", stage: "researching", progress: 5 });
 
-    // Fetch YouTube Shorts data before Analyst call
+    // Fetch YouTube Shorts data before Research Analyst call
     let youtubeDataJson: string | null = null;
-    let youtubePrefix = "";
+    let formattedYoutubeData = "No YouTube Shorts data available.";
     const apiKey = process.env.YOUTUBE_API_KEY;
     if (apiKey) {
       const keywords = extractTopicKeywords(clipTranscript);
       const youtubeResults = await searchYouTubeShorts(apiKey, keywords);
       if (youtubeResults.length > 0) {
         youtubeDataJson = JSON.stringify(youtubeResults);
-        youtubePrefix = `YOUTUBE DATA (real API data with actual view counts and tags):\n${formatYouTubeData(youtubeResults)}\n\n`;
+        formattedYoutubeData = formatYouTubeData(youtubeResults);
       }
     }
 
-    // Store YouTube data immediately so frontend can display it during processing
+    // Store YouTube data so frontend can display cards during processing
     if (youtubeDataJson) {
       await db
         .update(pipelineRunsTable)
@@ -195,10 +235,11 @@ export async function runClipPipeline(
         .where(eq(pipelineRunsTable.id, runId));
     }
 
-    const analystInput = `${youtubePrefix}FULL EPISODE TRANSCRIPT:\n${episodeTranscript}\n\nCLIP TRANSCRIPT (${clipType.toUpperCase()}):\n${clipTranscript}`;
-    const analystOutput = await callAgent(
-      ANALYST_CLIP_PROMPT,
-      analystInput,
+    const researchUserMessage = `CLIP TRANSCRIPT:\n${clipTranscript}\n\nYOUTUBE DATA (real API data with actual view counts and tags):\n${formattedYoutubeData}\n\nAnalyze the YouTube data directly. Then search Instagram, TikTok, LinkedIn, and Twitter using site: operators for competitive data on those platforms.`;
+
+    const researchOutput = await callAgentWithSearch(
+      RESEARCH_ANALYST_PROMPT,
+      researchUserMessage,
       "claude-sonnet-4-6",
       sendEvent,
     );
@@ -206,17 +247,47 @@ export async function runClipPipeline(
     await db
       .update(pipelineRunsTable)
       .set({
+        researchOutput,
+        updatedAt: new Date(),
+      })
+      .where(eq(pipelineRunsTable.id, runId));
+
+    // --- STAGE 2: Surgery Analyst (no web search) ---
+    await db
+      .update(pipelineRunsTable)
+      .set({ status: "analyzing", updatedAt: new Date() })
+      .where(eq(pipelineRunsTable.id, runId));
+
+    sendEvent({ type: "stage", stage: "analyzing", progress: 30 });
+
+    const surgeryUserMessage = `COMPETITIVE RESEARCH FINDINGS:\n${researchOutput}\n\nFULL EPISODE TRANSCRIPT:\n${episodeTranscript}\n\nCLIP TRANSCRIPT:\n${clipTranscript}\n\nEvaluate this clip against the three-point structure. Use the episode transcript to find better opening and closing lines if needed. The final revised transcript must be 150-200 words (60-80 seconds of speech).`;
+
+    const surgeryOutput = await callAgent(
+      SURGERY_ANALYST_PROMPT,
+      surgeryUserMessage,
+      "claude-sonnet-4-6",
+      sendEvent,
+    );
+
+    // Combined analyst output shown in the Brief tab
+    const analystOutput = `## COMPETITIVE RESEARCH\n\n${researchOutput}\n\n---\n\n## CLIP SURGERY\n\n${surgeryOutput}`;
+
+    await db
+      .update(pipelineRunsTable)
+      .set({
         status: "writing",
+        surgeryOutput,
         analystOutput,
         updatedAt: new Date(),
       })
       .where(eq(pipelineRunsTable.id, runId));
 
-    sendEvent({ type: "stage", stage: "writing", progress: 40 });
+    // --- STAGE 3: Writer ---
+    sendEvent({ type: "stage", stage: "writing", progress: 55 });
 
-    const writerInput = `ANALYST BRIEF:\n${analystOutput}\n\nCLIP TYPE: ${clipType}\n\nFULL EPISODE TRANSCRIPT:\n${episodeTranscript}\n\nCLIP TRANSCRIPT:\n${clipTranscript}`;
+    const writerInput = `COMPETITIVE RESEARCH:\n${researchOutput}\n\nCLIP SURGERY:\n${surgeryOutput}\n\nTYPE: ${clipType.toUpperCase()}\n\nCLIP TRANSCRIPT:\n${clipTranscript}`;
     const writerOutput = await callAgent(
-      clipType === "vertical" ? WRITER_CLIP_PROMPT : WRITER_CLIP_PROMPT,
+      WRITER_CLIP_PROMPT,
       writerInput,
       "claude-sonnet-4-6",
       sendEvent,
@@ -231,7 +302,8 @@ export async function runClipPipeline(
       })
       .where(eq(pipelineRunsTable.id, runId));
 
-    sendEvent({ type: "stage", stage: "editing", progress: 70 });
+    // --- STAGE 4: Editor ---
+    sendEvent({ type: "stage", stage: "editing", progress: 78 });
 
     const editorInput = `ANALYST BRIEF:\n${analystOutput}\n\nWRITER OUTPUT:\n${writerOutput}`;
     const editorOutput = await callAgent(
@@ -257,7 +329,7 @@ export async function runClipPipeline(
     });
     sendEvent({ type: "done", runId });
   } catch (err) {
-    logger.error({ err, runId }, "Pipeline failed");
+    logger.error({ err, runId }, "Clip pipeline failed");
     await db
       .update(pipelineRunsTable)
       .set({ status: "failed", updatedAt: new Date() })

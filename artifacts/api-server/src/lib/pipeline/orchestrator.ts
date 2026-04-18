@@ -24,7 +24,7 @@ async function callAgent(
 
   const stream = anthropic.messages.stream({
     model,
-    max_tokens: 8192,
+    max_tokens: 4096,
     system: systemPrompt,
     messages: [{ role: "user", content: userMessage }],
   });

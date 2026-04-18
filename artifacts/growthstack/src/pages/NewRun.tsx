@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -53,6 +53,16 @@ export default function NewRun() {
   });
 
   const watchType = form.watch("type");
+
+  // Pre-populate episode transcript from "Next Clip" flow
+  useEffect(() => {
+    const saved = sessionStorage.getItem("gs_episode_transcript");
+    if (saved) {
+      form.setValue("type", CreatePipelineRunBodyType.clip);
+      form.setValue("episodeTranscript", saved);
+      sessionStorage.removeItem("gs_episode_transcript");
+    }
+  }, []);
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     createRun.mutate(

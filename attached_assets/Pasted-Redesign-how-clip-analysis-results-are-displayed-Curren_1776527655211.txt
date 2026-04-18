@@ -1,0 +1,74 @@
+Redesign how clip analysis results are displayed. Currently the results show as tabs (Final Package, Drafts, Brief, Source Transcripts). Change the clip results view to an action-oriented layout that tells the user exactly what to do with each piece of output.
+Do not change the Full Episode results display. Only change how Video Clip results are shown.
+New Results Layout for Video Clips
+When a clip analysis completes, display the results as sequential steps instead of tabs:
+Step 1: "Edit your clip in Riverside"
+Subtitle: "What to add, cut, and rearrange"
+Display the clip surgery output from the Surgery Analyst. Parse the output to show three sections:
+
+Opening (Intrigue): The intrigue assessment text. What to do about the clip's opening.
+Middle (Value): The value assessment text. What filler to cut.
+Ending (Close): The close assessment text. What to do about the clip's ending.
+
+Below that, display the Revised Transcript section. Parse the transcript and render each line:
+
+Lines starting with [ADDED]: green background, green left border, prefixed with "ADD" label
+Lines starting with [CUT]: red background, red left border, strikethrough text, prefixed with "CUT" label
+All other lines: no special formatting
+
+Add a Copy button next to "Revised transcript" that copies the clean version (removes all [ADDED] and [CUT] markers, removes [CUT] lines entirely, keeps only the final usable text).
+If the Surgery Analyst included a word count at the end, display it below the transcript.
+Step 2: "Copy and publish"
+Subtitle: "Paste directly into each platform"
+Display each platform output as a separate card with a Copy button on each:
+
+Title card: show the title in large bold text with a Copy button
+YouTube Tags card: show tags with a Copy button
+Instagram Hashtags card: show hashtags with a Copy button
+LinkedIn Post (Arnav) card: show the post text with a Copy button. Only show this for horizontal clips.
+Twitter (GrowthStack) card: show the tweet with a character count (e.g. "187/220") and a Copy button. Only show this for horizontal clips.
+
+Below all the cards, add a feedback section:
+
+A text input with placeholder: 'e.g. "Twitter hook too weak, make it more confrontational"'
+A "Revise" button that sends the feedback to the Editor for revision
+When revision completes, update the cards above with the revised content
+
+Step 3: "Send to your designer"
+Subtitle: "Thumbnail and visual references"
+Display the thumbnail and visual references from the Research Analyst output. These are URLs with one-line notes about what to take from each reference.
+Only show this step if the Analyst included thumbnail references in its output.
+Step 4: "Competitive intel" (collapsible)
+Subtitle: "What's performing on each platform for this topic"
+This section is collapsed by default. When expanded, show the competitive research broken down by platform. Each platform is its own expandable/collapsible subsection:
+
+YouTube Shorts (with a red "YT" label): If YouTube API data is available, show each Short as a small card with thumbnail image, title (linked to URL), view count, likes, and tags. Below the cards, show the Analyst's text analysis of YouTube patterns.
+Instagram Reels (with a pink "IG" label): Analyst's text output for Instagram
+TikTok (with a teal "TK" label): Analyst's text output for TikTok
+LinkedIn Posts (with a blue "LI" label): Analyst's text output for LinkedIn
+Twitter/X (with a grey "X" label): Analyst's text output for Twitter
+Cross-Platform Patterns (with a gold "ALL" label): Analyst's synthesis across all platforms
+
+Step 5: "Marketing angle" (collapsible)
+Subtitle: "Strategic positioning for this clip"
+Collapsed by default. When expanded, shows the marketing angle from the Writer output.
+Bottom bar
+At the bottom of the results page, show three buttons:
+
+"Next Clip" - clears the clip data and goes back to the clip input screen (keeps the episode transcript loaded)
+"Export Full Brief" - downloads a markdown file with all the raw output from all agents
+"New Episode" - clears everything and goes back to the episode setup screen
+
+Step numbering
+Each step should have a numbered circle (1, 2, 3, 4, 5) with a title and subtitle. Steps 4 and 5 should be visually distinct from steps 1-3 to indicate they are reference material, not action items. Use a collapsible/accordion pattern for steps 4 and 5.
+What to test
+Run a clip analysis. Check:
+
+Step 1 shows the clip surgery with color-coded transcript edits and a working Copy button
+Step 2 shows each platform output with individual Copy buttons that work
+Step 2's feedback/revise flow works (type a note, hit Revise, outputs update)
+Step 3 shows thumbnail references if available
+Step 4 is collapsed by default and expands to show per-platform competitive data
+Step 5 is collapsed by default and expands to show the marketing angle
+"Next Clip" preserves the episode transcript and resets clip data
+"Export Full Brief" downloads a markdown file

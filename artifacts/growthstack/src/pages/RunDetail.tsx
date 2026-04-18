@@ -3,6 +3,7 @@ import { useParams, Link, useLocation } from "wouter";
 import { useGetPipelineRun, getGetPipelineRunQueryKey, useApprovePipelineRun, useDeletePipelineRun, PipelineRunDetail } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import AppLayout from "@/components/layout/AppLayout";
+import ClipResults from "./ClipResults";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -399,6 +400,9 @@ export default function RunDetail() {
 
         {/* Outputs Area */}
         <div className="mt-8">
+          {run.type === 'clip' ? (
+            <ClipResults run={run} runId={runId} isProcessing={isProcessing} />
+          ) : (
           <Tabs defaultValue="editor" className="w-full">
             <div className="flex items-center justify-between border-b pb-px mb-6">
               <TabsList className="bg-transparent h-auto p-0 space-x-6 justify-start rounded-none">
@@ -578,6 +582,7 @@ export default function RunDetail() {
               </Card>
             </TabsContent>
           </Tabs>
+          )}
         </div>
       </div>
     </AppLayout>

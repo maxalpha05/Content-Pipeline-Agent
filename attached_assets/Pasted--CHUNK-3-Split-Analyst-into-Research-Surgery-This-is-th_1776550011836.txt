@@ -1,0 +1,257 @@
+
+CHUNK 3: Split Analyst into Research + Surgery
+This is the highest-risk chunk. Test carefully.
+After pasting Chunk 3 instructions and Replit applies the change:
+
+ Ask Replit: "Show me the clip analysis pipeline. How many API calls are made for the Analyst step? Walk me through each call."
+
+ Confirm there are now TWO separate Analyst API calls, not one
+ Confirm Call 1 (Research) has web search enabled
+ Confirm Call 2 (Surgery) does NOT have web search enabled
+ Confirm Call 1 receives the clip transcript and YouTube data but NOT the full episode transcript
+ Confirm Call 2 receives the clip transcript, full episode transcript, AND the output from Call 1
+ Confirm Call 1 uses the Research Analyst prompt (look for "competitive research analyst")
+ Confirm Call 2 uses the Surgery Analyst prompt (look for "clip surgery specialist")
+
+
+ Ask Replit: "Show me what user message is sent to the Writer after the Analyst calls complete."
+
+ Confirm the Writer receives output from BOTH Call 1 and Call 2 (should contain "COMPETITIVE RESEARCH:" and "CLIP SURGERY:" sections)
+
+
+ Run a Video Clip analysis with the same test clip.
+ Go to the Brief (Analyst) tab. Check for Research output:
+
+ CORE INSIGHT section exists with a specific one-sentence insight
+ COMPETITIVE RESEARCH section exists with platform subsections
+ YouTube Shorts subsection references real API data
+ At least 2 of 4 other platforms (Instagram, TikTok, LinkedIn, Twitter) have results
+ Cross-Platform Patterns section exists with synthesized insights
+ RECOMMENDED TITLES section exists with 2-3 title options
+ RECOMMENDED TAGS section exists with 15-20 tags
+ RECOMMENDED HASHTAGS section exists with 5-8 hashtags
+
+
+ Check for Surgery output in the same tab:
+
+ CLIP SURGERY section exists
+ Intrigue assessment exists with specific line references or recommendations
+ Value assessment exists
+ Close assessment exists with specific line references or recommendations
+ FINAL REVISED TRANSCRIPT section exists
+ Revised transcript contains [ADDED] markers on new lines
+ Revised transcript contains [CUT] markers on removed lines
+ Revised transcript includes unchanged lines with no markers
+ Word count statement appears at the end (e.g., "WORD COUNT: 178 words (approximately 71 seconds)")
+ The word count of non-CUT lines is between 150-200 words
+
+
+ Go to the Drafts (Writer) tab. Check:
+
+ All expected outputs exist (title, tags, hashtags, and for horizontal: LinkedIn post, Twitter post)
+ The title reflects competitive research data (not generic)
+ Tags include both baseline brand tags and contextual tags
+
+
+ Go to the Final Package (Editor) tab. Check:
+
+ Editor output exists with FINAL or REVISED markers
+ All platform outputs are present
+
+
+
+If Surgery output is missing (only Research shows up):
+
+The two calls aren't chaining correctly
+Tell Replit: "The second Analyst call (Surgery) output is not appearing. Show me the code where Call 1 output is passed to Call 2. Add console.log to show what's being sent to Call 2 and what Call 2 returns."
+
+If Research output is empty or generic (no platform-specific data):
+
+Web search might not be enabled on Call 1
+Tell Replit: "Is web search enabled on the first Analyst API call (the Research call)? Show me the tools configuration for that call."
+
+If the revised transcript is too long (over 200 words):
+
+The Surgery prompt is working but not enforcing the limit
+This is acceptable for now; the prompt will need iteration
+
+If Writer output is missing data:
+
+Tell Replit: "Show me the exact message being sent to the Writer. Does it include both the Research and Surgery outputs?"
+
+Pass criteria: Brief tab shows competitive research WITH clip surgery and a revised transcript. Writer and Editor outputs are complete and reference the competitive data.
+
+CHUNK 4: Writer and Editor Prompt Upgrades
+After pasting Chunk 4 instructions and Replit applies the change:
+
+ Ask Replit: "Show me the current Writer system prompt." Verify it matches the new prompt (check for these unique phrases):
+
+ Contains "strategic imperfection"
+ Contains the banned phrases list (game-changer, revolutionary, etc.)
+ Contains "Arnav Bhardwaj's personal account"
+ Contains "Under 220 characters total"
+
+
+ Ask Replit: "Show me the current Editor system prompt." Verify it matches the new prompt (check for these unique phrases):
+
+ Contains "REJECTION CHECKLIST"
+ Contains "FINAL" and "REVISED" markers
+ Contains "texture of lived experience"
+
+
+ Run a Video Clip analysis (horizontal clip) with the same test clip.
+ Check Writer output (Drafts tab):
+
+ Title is under 80 characters
+ Title is insight-forward (describes the insight, not "Episode 12 with Guest Name")
+ No em dashes (the long — character) anywhere in any output
+ No "it is not X, it is Y" contrast structures
+ No banned phrases (game-changer, revolutionary, deep dive, unpack, landscape, leverage, at its core)
+ No stock openers (In a recent episode, On this week's show)
+ No emojis
+ LinkedIn post is first person ("I" perspective, not "Arnav" in third person)
+ LinkedIn post is 3-4 sentences max
+ LinkedIn post ends with [EPISODE_LINK]
+ LinkedIn post sounds like someone who conducted the interview, not someone who read a summary
+ Twitter post exists
+ Twitter post is under 220 characters (count them)
+ Twitter post includes [EPISODE_LINK]
+ Twitter post is conversational, not corporate
+ YouTube tags include baseline tags (marketing, growth marketing, growth strategy, AI marketing, B2B marketing)
+ YouTube tags include contextual tags specific to the clip topic
+ Instagram hashtags are 5-8 in count
+ Marketing angle exists and is one paragraph
+
+
+ Check Editor output (Final Package tab):
+
+ Each output is marked FINAL or REVISED
+ If any outputs were REVISED, the revision note explains what was wrong
+ No em dashes survived into the final output
+ No banned phrases survived
+ Twitter character count is confirmed under 220
+
+
+ Run a second test with a VERTICAL clip:
+
+ LinkedIn post should NOT appear
+ Twitter post should NOT appear
+ Title, YouTube tags, Instagram hashtags, and Marketing angle should appear
+
+
+
+If outputs still contain em dashes or banned phrases:
+
+The prompt swap might not have fully applied
+Tell Replit: "Search the entire codebase for the old Writer prompt text. Is there a second copy of the prompt somewhere that wasn't updated?"
+
+If LinkedIn post sounds generic or third-person:
+
+Check if the prompt mentions "Arnav Bhardwaj" and "first person"
+The prompt might have been partially applied
+
+Pass criteria: All style rules are followed. LinkedIn sounds like Arnav. Twitter is under 220 chars. No em dashes or banned phrases in any output.
+
+CHUNK 5: Results UI Restructure
+After pasting Chunk 5 instructions and Replit applies the change:
+
+ Run a Video Clip analysis (horizontal clip) with the same test clip.
+ Check Step 1: "Edit your clip in Riverside"
+
+ Step has a numbered circle (1) with title and subtitle
+ Intrigue assessment is displayed
+ Value assessment is displayed
+ Close assessment is displayed
+ Revised transcript is displayed below the assessments
+ [ADDED] lines are visually distinct (green background or green text)
+ [CUT] lines are visually distinct (red, strikethrough)
+ Unchanged lines are neutral/default color
+ Copy button exists next to "Revised transcript"
+ Click Copy button: paste into a text editor and verify it contains only the clean text (no [ADDED] or [CUT] markers, no [CUT] lines)
+
+
+ Check Step 2: "Copy and publish"
+
+ Step has a numbered circle (2) with title and subtitle
+ Title card exists with Copy button
+ Click Title Copy button: paste and verify correct text copied
+ YouTube Tags card exists with Copy button
+ Click YouTube Tags Copy button: paste and verify
+ Instagram Hashtags card exists with Copy button
+ Click Instagram Hashtags Copy button: paste and verify
+ LinkedIn Post card exists (horizontal only) with Copy button
+ Click LinkedIn Copy button: paste and verify
+ Twitter Post card exists (horizontal only) with Copy button and character count
+ Character count is accurate (count manually if needed)
+ Click Twitter Copy button: paste and verify
+ Feedback text input exists with placeholder text
+ Type feedback (e.g., "Twitter hook is too weak, make it more confrontational")
+ Click Revise button
+ Wait for revision to complete
+ Verify the revised output appears (Twitter card should update)
+ Verify the revision actually addressed the feedback
+
+
+ Check Step 3: "Send to your designer"
+
+ Step has a numbered circle (3) with title and subtitle
+ Thumbnail/visual references are displayed (if Analyst provided them)
+ References include URLs and designer notes
+ If no references were provided by the Analyst, this step should be hidden (not show empty)
+
+
+ Check Step 4: "Competitive intel"
+
+ Section is collapsed by default
+ Click to expand
+ YouTube Shorts subsection exists (with YT label)
+ YouTube cards show thumbnails, titles, view counts (if YouTube API data available)
+ Instagram Reels subsection exists (with IG label)
+ TikTok subsection exists (with TK label)
+ LinkedIn Posts subsection exists (with LI label)
+ Twitter/X subsection exists (with X label)
+ Cross-Platform Patterns subsection exists
+ Each platform subsection is individually expandable/collapsible
+ Click to collapse the entire section
+
+
+ Check Step 5: "Marketing angle"
+
+ Section is collapsed by default
+ Click to expand
+ Marketing angle text is displayed
+ Click to collapse
+
+
+ Check bottom bar:
+
+ "Next Clip" button exists
+ Click "Next Clip": clip data clears, episode transcript remains loaded, you're back at clip input
+ "Export Full Brief" button exists
+ Click "Export Full Brief": a markdown file downloads
+ Open the downloaded file: contains all agent outputs (research, surgery, writer, editor)
+ "New Episode" button exists
+ Click "New Episode": everything clears, you're back at episode setup
+
+
+ Run a second test with a VERTICAL clip:
+
+ LinkedIn and Twitter cards should NOT appear in Step 2
+ All other steps should work the same
+
+
+
+If Steps 1-3 are empty but Step 4 has data:
+
+The UI is not parsing the Analyst's surgery output correctly
+Tell Replit: "The clip surgery data (Intrigue, Value, Close, Revised Transcript) is not showing in Step 1. Show me how the app parses the Analyst output. It needs to look for ## CLIP SURGERY, ### Intrigue, ### Value, ### Close, and ## FINAL REVISED TRANSCRIPT headers."
+
+If Copy buttons don't work:
+
+Tell Replit: "The copy buttons are not copying to clipboard. Make sure clipboard.writeText is being used and the correct text content is being passed."
+
+If Revised Transcript colors are not showing:
+
+Tell Replit: "The revised transcript should color-code lines. Lines containing [ADDED] should be green. Lines containing [CUT] should be red with strikethrough. Show me the rendering code for the transcript."
+
+Pass criteria: All 5 steps display correctly. Copy buttons work. Feedback/revision works. Collapsible sections work. Next Clip preserves episode data. Export downloads a complete file.

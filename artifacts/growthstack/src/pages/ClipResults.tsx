@@ -118,6 +118,18 @@ function parseResearch(text: string | null | undefined): ResearchParsed {
   };
 }
 
+function youtubeThumbnailFromUrl(url: string): string | null {
+  const patterns = [
+    /youtube\.com\/(?:watch\?v=|shorts\/)([A-Za-z0-9_-]{11})/,
+    /youtu\.be\/([A-Za-z0-9_-]{11})/,
+  ];
+  for (const pat of patterns) {
+    const m = url.match(pat);
+    if (m) return `https://i.ytimg.com/vi/${m[1]}/hqdefault.jpg`;
+  }
+  return null;
+}
+
 function parseThumbnailRefs(text: string): Array<{ url: string; note: string }> {
   const refs: Array<{ url: string; note: string }> = [];
   for (const line of text.split("\n")) {
@@ -347,6 +359,63 @@ function YouTubeCard({ short }: { short: YouTubeShort }) {
             ))}
           </div>
         )}
+      </div>
+    </a>
+  );
+}
+
+function ThumbnailRefCard({ item, index }: { item: { url: string; note: string }; index: number }) {
+  const [imgError, setImgError] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const ytThumb = youtubeThumbnailFromUrl(item.url);
+  const isDirectImage = /\.(jpg|jpeg|png|webp|gif)(\?|$)/i.test(item.url);
+  const imgSrc = ytThumb || (isDirectImage ? item.url : null);
+
+  const handleCopy = (e: React.MouseEvent) => {
+    e.preventDefault();
+    navigator.clipboard.writeText(item.url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  return (
+    <a
+      href={item.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="group flex flex-col bg-card border border-border rounded-lg overflow-hidden hover:border-primary/40 hover:shadow-md transition-all"
+    >
+      <div className="relative aspect-video bg-muted overflow-hidden">
+        {imgSrc && !imgError ? (
+          <img
+            src={imgSrc}
+            alt={item.note || `Reference ${index + 1}`}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-muted/60 text-muted-foreground px-4">
+            <ExternalLink className="h-5 w-5 shrink-0" />
+            <span className="text-[9px] text-center break-all line-clamp-3 leading-relaxed">{item.url}</span>
+          </div>
+        )}
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+        <div className="absolute top-1.5 left-1.5 bg-black/60 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
+          {index + 1}
+        </div>
+      </div>
+      <div className="p-2.5 flex items-start justify-between gap-2">
+        <p className="text-[11px] text-muted-foreground leading-tight flex-1 line-clamp-2">
+          {item.note || "Visual reference"}
+        </p>
+        <button
+          onClick={handleCopy}
+          className="text-[10px] text-primary hover:underline shrink-0 font-medium"
+        >
+          {copied ? "Copied!" : "Copy URL"}
+        </button>
       </div>
     </a>
   );
@@ -837,25 +906,9 @@ export default function ClipResults({ run, runId, isProcessing }: ClipResultsPro
       {/* ── Step 3: Send to designer ── */}
       {thumbnailRefs.length > 0 && (
         <StepCard number={3} title="Send to your designer" subtitle="Thumbnail and visual references">
-          <div className="space-y-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {thumbnailRefs.map((ref, i) => (
-              <Card key={i} className="border-border/60 shadow-sm">
-                <CardContent className="p-3.5 flex items-start gap-3">
-                  <span className="text-xs font-bold text-muted-foreground mt-0.5 shrink-0 w-5">{i + 1}</span>
-                  <div className="flex-1 min-w-0">
-                    <a
-                      href={ref.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-primary hover:underline break-all inline-flex items-center gap-1"
-                    >
-                      {ref.url} <ExternalLink className="h-2.5 w-2.5 shrink-0" />
-                    </a>
-                    {ref.note && <p className="text-xs text-muted-foreground mt-0.5">{ref.note}</p>}
-                  </div>
-                  <CopyButton text={ref.url} label="URL" />
-                </CardContent>
-              </Card>
+              <ThumbnailRefCard key={i} item={ref} index={i} />
             ))}
           </div>
         </StepCard>

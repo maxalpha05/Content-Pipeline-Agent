@@ -362,8 +362,8 @@ interface PieceEntry { content: string; url: string; whyPicked: string; analysis
 function parsePlatformPieces(text: string): PieceEntry[] {
   if (!text.trim()) return [];
 
-  // Split on lines containing only dashes (--- separator from the prompt)
-  const chunks = text.split(/\n-{3,}\n?/);
+  // Split on --- separator or #### PIECE N headers (forward-compatible with both formats)
+  const chunks = text.split(/\n-{3,}\n?|\n#{3,4}\s*PIECE\s*\d+\n?/i);
   const pieces: PieceEntry[] = [];
 
   for (const chunk of chunks) {
@@ -484,18 +484,24 @@ function PieceCard({ content, url, whyPicked, analysis, index }: PieceEntry & { 
       <div className="px-4 py-3 bg-muted/20 border-b border-border/40">
         <div className="flex items-start gap-2">
           <span className="text-[10px] font-bold text-muted-foreground/60 shrink-0 mt-[3px] tabular-nums">#{index + 1}</span>
-          <p className="text-sm font-medium text-foreground leading-snug">{clean(content) || "Content piece"}</p>
+          <div className="flex-1 min-w-0">
+            <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-0.5">Content piece</p>
+            <p className="text-sm font-medium text-foreground leading-snug">{clean(content) || "Content piece"}</p>
+          </div>
         </div>
         {href && (
-          <a
-            href={href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-1.5 inline-flex items-center gap-1 text-xs text-primary hover:underline break-all"
-          >
-            {url}
-            <ExternalLink className="h-2.5 w-2.5 shrink-0" />
-          </a>
+          <div className="mt-2">
+            <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-0.5">URL</p>
+            <a
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs text-primary hover:underline break-all"
+            >
+              {url}
+              <ExternalLink className="h-2.5 w-2.5 shrink-0" />
+            </a>
+          </div>
         )}
       </div>
       {(whyPicked || analysis) && (

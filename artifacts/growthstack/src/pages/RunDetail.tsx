@@ -559,12 +559,19 @@ export default function RunDetail() {
                             </div>
                           )}
 
-                          <div className="relative group">
-                            {renderFormattedOutput(
-                              editorParsed ? editorParsed.finalContent : content as string,
-                              stage
+                          <div className={`relative group ${editorParsed ? 'border border-border/50 rounded-lg overflow-hidden' : ''}`}>
+                            {editorParsed && (
+                              <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border/40 bg-muted/10">
+                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Final Content Package</p>
+                              </div>
                             )}
-                            
+                            <div className={editorParsed ? 'p-4' : ''}>
+                              {renderFormattedOutput(
+                                editorParsed ? editorParsed.finalContent : content as string,
+                                stage
+                              )}
+                            </div>
+
                             {/* Inline Feedback Prompt (appears on hover over content block if not active) */}
                             {(!isProcessing && displayData.status !== 'approved' && stage === 'editor' && !feedbackTarget) && (
                               <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">

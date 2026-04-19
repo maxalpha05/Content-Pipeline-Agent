@@ -9,6 +9,7 @@ import {
   WRITER_EPISODE_PROMPT,
   WRITER_CLIP_PROMPT,
   EDITOR_PROMPT,
+  EDITOR_EPISODE_PROMPT,
   EDITOR_FEEDBACK_PROMPT,
 } from "./prompts";
 import {
@@ -154,7 +155,7 @@ export async function runEpisodePipeline(
 
     const editorInput = `ANALYST BRIEF:\n${analystOutput}\n\nWRITER OUTPUT:\n${writerOutput}`;
     const editorOutput = await callAgent(
-      EDITOR_PROMPT,
+      EDITOR_EPISODE_PROMPT,
       editorInput,
       "claude-sonnet-4-6",
       sendEvent,

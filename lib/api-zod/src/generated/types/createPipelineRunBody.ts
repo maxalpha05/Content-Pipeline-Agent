@@ -11,6 +11,8 @@ import type { CreatePipelineRunBodyType } from "./createPipelineRunBodyType";
 export interface CreatePipelineRunBody {
   type: CreatePipelineRunBodyType;
   clipType?: CreatePipelineRunBodyClipType;
-  episodeTranscript: string;
+  episodeTranscript?: string;
   clipTranscript?: string;
+  /** When provided, the episode's stored transcript is used and clip_count is incremented. */
+  episodeId?: number;
 }

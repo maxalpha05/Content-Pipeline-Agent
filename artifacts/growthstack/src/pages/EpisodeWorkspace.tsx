@@ -86,17 +86,6 @@ function RunStatusIcon({ status }: { status: string }) {
   }
 }
 
-function findSection(text: string, labels: string[]): string {
-  for (const label of labels) {
-    const mdMatch = text.match(new RegExp(`^##\\s+${label}\\s*$`, "im"));
-    if (mdMatch && mdMatch.index != null) {
-      const after = text.slice(mdMatch.index + mdMatch[0].length);
-      const next = after.search(/^##\s/im);
-      return (next === -1 ? after : after.slice(0, next)).trim();
-    }
-  }
-  return "";
-}
 
 function PlatformCard({ label, content, maxChars }: { label: string; content: string; maxChars?: number }) {
   if (!content) return null;
@@ -335,21 +324,12 @@ export default function EpisodeWorkspace() {
     }
   }
 
-  const hasFullEpisodeContent = !!(episode.substackArticle || episode.substackNote || episode.linkedinPost || episode.twitterPost);
-  // Prefer dedicated DB fields; fall back to parsing the combined editor output in substackArticle
-  const substackContent = episode.substackArticle
-    ? findSection(episode.substackArticle, ["SUBSTACK ARTICLE"]) || (
-        !episode.substackNote && !episode.linkedinPost && !episode.twitterPost
-          ? episode.substackArticle
-          : null
-      )
-    : null;
-  const substackNote = episode.substackNote
-    || (episode.substackArticle ? findSection(episode.substackArticle, ["SUBSTACK NOTE", "NEWSLETTER NOTE"]) : null);
-  const linkedinContent = episode.linkedinPost
-    || (episode.substackArticle ? findSection(episode.substackArticle, ["LINKEDIN POST", "LINKEDIN"]) : null);
-  const twitterContent = episode.twitterPost
-    || (episode.substackArticle ? findSection(episode.substackArticle, ["TWITTER POST", "TWITTER", "TWEET"]) : null);
+  const hasFullEpisodeContent = !!(episode.substackArticle || episode.linkedinPost || episode.youtubeDescription || episode.titleVariations);
+  // Use dedicated DB fields; these are always parsed from the FINAL CONTENT PACKAGE block
+  const substackContent = episode.substackArticle || null;
+  const linkedinContent = episode.linkedinPost || null;
+  const youtubeContent = episode.youtubeDescription || null;
+  const titleVariationsContent = episode.titleVariations || null;
 
   return (
     <AppLayout>
@@ -569,17 +549,14 @@ export default function EpisodeWorkspace() {
               {substackContent && (
                 <PlatformCard label="Substack Article" content={substackContent} />
               )}
-              {substackNote && (
-                <PlatformCard label="Substack Note" content={substackNote} maxChars={280} />
-              )}
               {linkedinContent && (
                 <PlatformCard label="LinkedIn Post" content={linkedinContent} maxChars={3000} />
               )}
-              {twitterContent && (
-                <PlatformCard label="Twitter Post" content={twitterContent} maxChars={280} />
+              {youtubeContent && (
+                <PlatformCard label="YouTube Description" content={youtubeContent} maxChars={5000} />
               )}
-              {!substackContent && !substackNote && !linkedinContent && !twitterContent && (
-                <PlatformCard label="Full Episode Content Package" content={episode.substackArticle!} />
+              {titleVariationsContent && (
+                <PlatformCard label="Title Variations" content={titleVariationsContent} />
               )}
             </div>
           ) : (

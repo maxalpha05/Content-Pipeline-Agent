@@ -16,10 +16,134 @@ export const HealthCheckResponse = zod.object({
 });
 
 /**
+ * @summary List all episodes
+ */
+export const ListEpisodesResponseItem = zod.object({
+  id: zod.number(),
+  episodeName: zod.string(),
+  guestName: zod.string(),
+  fullTranscript: zod.string(),
+  status: zod.enum(["active", "archived"]),
+  clipCount: zod.number(),
+  substackArticle: zod.string().nullish(),
+  substackNote: zod.string().nullish(),
+  linkedinPost: zod.string().nullish(),
+  twitterPost: zod.string().nullish(),
+  youtubeDescription: zod.string().nullish(),
+  titleVariations: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+export const ListEpisodesResponse = zod.array(ListEpisodesResponseItem);
+
+/**
+ * @summary Create a new episode
+ */
+export const createEpisodeBodyFullTranscriptMin = 100;
+
+export const CreateEpisodeBody = zod.object({
+  episodeName: zod.string(),
+  guestName: zod.string(),
+  fullTranscript: zod.string().min(createEpisodeBodyFullTranscriptMin),
+});
+
+/**
+ * @summary Get an episode with its clip runs
+ */
+export const GetEpisodeParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetEpisodeResponse = zod
+  .object({
+    id: zod.number(),
+    episodeName: zod.string(),
+    guestName: zod.string(),
+    fullTranscript: zod.string(),
+    status: zod.enum(["active", "archived"]),
+    clipCount: zod.number(),
+    substackArticle: zod.string().nullish(),
+    substackNote: zod.string().nullish(),
+    linkedinPost: zod.string().nullish(),
+    twitterPost: zod.string().nullish(),
+    youtubeDescription: zod.string().nullish(),
+    titleVariations: zod.string().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  })
+  .and(
+    zod.object({
+      runs: zod.array(
+        zod.object({
+          id: zod.number(),
+          type: zod.string(),
+          clipType: zod.string().nullish(),
+          status: zod.string(),
+          title: zod.string().nullish(),
+          clipTranscript: zod.string().nullish(),
+          createdAt: zod.coerce.date(),
+        }),
+      ),
+    }),
+  );
+
+/**
+ * @summary Update an episode
+ */
+export const UpdateEpisodeParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateEpisodeBody = zod.object({
+  episodeName: zod.string().optional(),
+  guestName: zod.string().optional(),
+  fullTranscript: zod.string().optional(),
+  status: zod.enum(["active", "archived"]).optional(),
+  substackArticle: zod.string().nullish(),
+  substackNote: zod.string().nullish(),
+  linkedinPost: zod.string().nullish(),
+  twitterPost: zod.string().nullish(),
+  youtubeDescription: zod.string().nullish(),
+  titleVariations: zod.string().nullish(),
+});
+
+export const UpdateEpisodeResponse = zod.object({
+  id: zod.number(),
+  episodeName: zod.string(),
+  guestName: zod.string(),
+  fullTranscript: zod.string(),
+  status: zod.enum(["active", "archived"]),
+  clipCount: zod.number(),
+  substackArticle: zod.string().nullish(),
+  substackNote: zod.string().nullish(),
+  linkedinPost: zod.string().nullish(),
+  twitterPost: zod.string().nullish(),
+  youtubeDescription: zod.string().nullish(),
+  titleVariations: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Delete an episode and all its clip runs
+ */
+export const DeleteEpisodeParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary Run the full episode pipeline using the stored transcript (SSE)
+ */
+export const RunFullEpisodeParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
  * @summary List all pipeline runs
  */
 export const ListPipelineRunsResponseItem = zod.object({
   id: zod.number(),
+  episodeId: zod.number().nullish(),
   type: zod.enum(["episode", "clip"]),
   clipType: zod
     .union([
@@ -52,7 +176,12 @@ export const CreatePipelineRunBody = zod.object({
   clipType: zod.enum(["vertical", "horizontal"]).optional(),
   episodeTranscript: zod.string().optional(),
   clipTranscript: zod.string().optional(),
-  episodeId: zod.number().int().positive().optional(),
+  episodeId: zod
+    .number()
+    .optional()
+    .describe(
+      "When provided, the episode's stored transcript is used and clip_count is incremented.",
+    ),
 });
 
 /**
@@ -132,6 +261,7 @@ export const ApprovePipelineRunParams = zod.object({
 
 export const ApprovePipelineRunResponse = zod.object({
   id: zod.number(),
+  episodeId: zod.number().nullish(),
   type: zod.enum(["episode", "clip"]),
   clipType: zod
     .union([
@@ -156,6 +286,18 @@ export const ApprovePipelineRunResponse = zod.object({
 });
 
 /**
+ * @summary Reset a pipeline run to pending so it can be re-processed
+ */
+export const RerunPipelineRunParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const RerunPipelineRunResponse = zod.object({
+  id: zod.number(),
+  status: zod.string(),
+});
+
+/**
  * @summary Get dashboard summary stats
  */
 export const GetPipelineDashboardResponse = zod.object({
@@ -167,6 +309,7 @@ export const GetPipelineDashboardResponse = zod.object({
   recentRuns: zod.array(
     zod.object({
       id: zod.number(),
+      episodeId: zod.number().nullish(),
       type: zod.enum(["episode", "clip"]),
       clipType: zod
         .union([
@@ -190,65 +333,4 @@ export const GetPipelineDashboardResponse = zod.object({
       updatedAt: zod.coerce.date(),
     }),
   ),
-});
-
-/**
- * @summary Episode endpoints
- */
-export const CreateEpisodeBody = zod.object({
-  episodeName: zod.string().min(1),
-  guestName: zod.string().min(1),
-  fullTranscript: zod.string().min(100),
-});
-
-export const UpdateEpisodeBody = zod.object({
-  episodeName: zod.string().min(1).optional(),
-  guestName: zod.string().min(1).optional(),
-  fullTranscript: zod.string().min(100).optional(),
-  status: zod.enum(["active", "archived"]).optional(),
-  substackArticle: zod.string().nullish(),
-  substackNote: zod.string().nullish(),
-  linkedinPost: zod.string().nullish(),
-  twitterPost: zod.string().nullish(),
-});
-
-export const EpisodeRunCard = zod.object({
-  id: zod.number(),
-  type: zod.string(),
-  clipType: zod.string().nullish(),
-  status: zod.string(),
-  title: zod.string().nullish(),
-  clipTranscript: zod.string().nullish(),
-  createdAt: zod.coerce.date(),
-});
-
-export const EpisodeSchema = zod.object({
-  id: zod.number(),
-  episodeName: zod.string(),
-  guestName: zod.string(),
-  fullTranscript: zod.string(),
-  status: zod.string(),
-  clipCount: zod.number(),
-  substackArticle: zod.string().nullish(),
-  substackNote: zod.string().nullish(),
-  linkedinPost: zod.string().nullish(),
-  twitterPost: zod.string().nullish(),
-  createdAt: zod.coerce.date(),
-  updatedAt: zod.coerce.date(),
-});
-
-export const EpisodeDetailSchema = EpisodeSchema.extend({
-  runs: zod.array(EpisodeRunCard),
-});
-
-export const GetEpisodeParams = zod.object({
-  id: zod.coerce.number(),
-});
-
-export const UpdateEpisodeParams = zod.object({
-  id: zod.coerce.number(),
-});
-
-export const DeleteEpisodeParams = zod.object({
-  id: zod.coerce.number(),
 });

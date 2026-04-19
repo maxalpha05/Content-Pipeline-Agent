@@ -6,9 +6,14 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from "./createEpisodeBody";
 export * from "./createPipelineRunBody";
 export * from "./createPipelineRunBodyClipType";
 export * from "./createPipelineRunBodyType";
+export * from "./episode";
+export * from "./episodeDetail";
+export * from "./episodeRunCard";
+export * from "./episodeStatus";
 export * from "./healthStatus";
 export * from "./pipelineDashboard";
 export * from "./pipelineError";
@@ -20,4 +25,7 @@ export * from "./pipelineRunDetailStatus";
 export * from "./pipelineRunDetailType";
 export * from "./pipelineRunStatus";
 export * from "./pipelineRunType";
+export * from "./rerunPipelineRun200";
 export * from "./submitFeedbackBody";
+export * from "./updateEpisodeBody";
+export * from "./updateEpisodeBodyStatus";

@@ -13,6 +13,8 @@ export const episodesTable = pgTable("episodes", {
   substackNote: text("substack_note"),
   linkedinPost: text("linkedin_post"),
   twitterPost: text("twitter_post"),
+  youtubeDescription: text("youtube_description"),
+  titleVariations: text("title_variations"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

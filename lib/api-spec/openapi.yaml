@@ -289,6 +289,38 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PipelineError"
+  /pipeline/runs/{id}/rerun:
+    post:
+      operationId: rerunPipelineRun
+      tags: [pipeline]
+      summary: Reset a pipeline run to pending so it can be re-processed
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Reset run
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  status:
+                    type: string
+                required:
+                  - id
+                  - status
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PipelineError"
   /pipeline/dashboard:
     get:
       operationId: getPipelineDashboard
@@ -333,6 +365,10 @@ components:
         linkedinPost:
           type: ["string", "null"]
         twitterPost:
+          type: ["string", "null"]
+        youtubeDescription:
+          type: ["string", "null"]
+        titleVariations:
           type: ["string", "null"]
         createdAt:
           type: string
@@ -416,6 +452,10 @@ components:
         linkedinPost:
           type: ["string", "null"]
         twitterPost:
+          type: ["string", "null"]
+        youtubeDescription:
+          type: ["string", "null"]
+        titleVariations:
           type: ["string", "null"]
     PipelineRun:
       type: object

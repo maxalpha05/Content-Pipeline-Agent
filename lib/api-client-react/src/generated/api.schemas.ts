@@ -9,6 +9,87 @@ export interface HealthStatus {
   status: string;
 }
 
+export type EpisodeStatus = (typeof EpisodeStatus)[keyof typeof EpisodeStatus];
+
+export const EpisodeStatus = {
+  active: "active",
+  archived: "archived",
+} as const;
+
+export interface Episode {
+  id: number;
+  episodeName: string;
+  guestName: string;
+  fullTranscript: string;
+  status: EpisodeStatus;
+  clipCount: number;
+  /** @nullable */
+  substackArticle?: string | null;
+  /** @nullable */
+  substackNote?: string | null;
+  /** @nullable */
+  linkedinPost?: string | null;
+  /** @nullable */
+  twitterPost?: string | null;
+  /** @nullable */
+  youtubeDescription?: string | null;
+  /** @nullable */
+  titleVariations?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EpisodeRunCard {
+  id: number;
+  type: string;
+  /** @nullable */
+  clipType?: string | null;
+  status: string;
+  /** @nullable */
+  title?: string | null;
+  /** @nullable */
+  clipTranscript?: string | null;
+  createdAt: string;
+}
+
+export type EpisodeDetail = Episode & {
+  runs: EpisodeRunCard[];
+};
+
+export interface CreateEpisodeBody {
+  episodeName: string;
+  guestName: string;
+  /** @minLength 100 */
+  fullTranscript: string;
+}
+
+export type UpdateEpisodeBodyStatus =
+  (typeof UpdateEpisodeBodyStatus)[keyof typeof UpdateEpisodeBodyStatus];
+
+export const UpdateEpisodeBodyStatus = {
+  active: "active",
+  archived: "archived",
+} as const;
+
+export interface UpdateEpisodeBody {
+  episodeName?: string;
+  guestName?: string;
+  fullTranscript?: string;
+  status?: UpdateEpisodeBodyStatus;
+  /** @nullable */
+  substackArticle?: string | null;
+  /** @nullable */
+  substackNote?: string | null;
+  /** @nullable */
+  linkedinPost?: string | null;
+  /** @nullable */
+  twitterPost?: string | null;
+  /** @nullable */
+  youtubeDescription?: string | null;
+  /** @nullable */
+  titleVariations?: string | null;
+}
+
 export type PipelineRunType =
   (typeof PipelineRunType)[keyof typeof PipelineRunType];
 
@@ -143,6 +224,7 @@ export interface CreatePipelineRunBody {
   clipType?: CreatePipelineRunBodyClipType;
   episodeTranscript?: string;
   clipTranscript?: string;
+  /** When provided, the episode's stored transcript is used and clip_count is incremented. */
   episodeId?: number;
 }
 
@@ -164,48 +246,7 @@ export interface PipelineError {
   error: string;
 }
 
-export interface EpisodeRunCard {
+export type RerunPipelineRun200 = {
   id: number;
-  type: string;
-  clipType?: string | null;
   status: string;
-  title?: string | null;
-  clipTranscript?: string | null;
-  createdAt: string;
-}
-
-export interface Episode {
-  id: number;
-  episodeName: string;
-  guestName: string;
-  fullTranscript: string;
-  status: string;
-  clipCount: number;
-  substackArticle?: string | null;
-  substackNote?: string | null;
-  linkedinPost?: string | null;
-  twitterPost?: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface EpisodeDetail extends Episode {
-  runs: EpisodeRunCard[];
-}
-
-export interface CreateEpisodeBody {
-  episodeName: string;
-  guestName: string;
-  fullTranscript: string;
-}
-
-export interface UpdateEpisodeBody {
-  episodeName?: string;
-  guestName?: string;
-  fullTranscript?: string;
-  status?: "active" | "archived";
-  substackArticle?: string | null;
-  substackNote?: string | null;
-  linkedinPost?: string | null;
-  twitterPost?: string | null;
-}
+};

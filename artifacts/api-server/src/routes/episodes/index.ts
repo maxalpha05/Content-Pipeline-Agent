@@ -3,13 +3,38 @@ import { eq, desc, sql } from "drizzle-orm";
 import { db, episodesTable, pipelineRunsTable } from "@workspace/db";
 import { runEpisodePipeline } from "../../lib/pipeline/orchestrator";
 
+const SECTION_LABELS = [
+  "SUBSTACK ARTICLE",
+  "SUBSTACK NOTE",
+  "NEWSLETTER NOTE",
+  "LINKEDIN POST",
+  "LINKEDIN",
+  "TWITTER POST",
+  "TWITTER",
+  "TWEET",
+  "YOUTUBE DESCRIPTION",
+  "TITLE VARIATIONS",
+  "TITLE",
+  "YOUTUBE TAGS",
+  "INSTAGRAM HASHTAGS",
+  "MARKETING ANGLE",
+];
+
 function findSection(text: string, labels: string[]): string | null {
+  const stopPattern = SECTION_LABELS.map((l) =>
+    l.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+  ).join("|");
   const pattern = new RegExp(
-    `(?:^|\\n)\\s*(?:#{1,3}\\s*)?(?:${labels.map((l) => l.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})[:\\s]*\\n([\\s\\S]*?)(?=\\n\\s*(?:#{1,3}\\s*)?(?:SUBSTACK ARTICLE|SUBSTACK NOTE|NEWSLETTER NOTE|LINKEDIN POST|LINKEDIN|TWITTER POST|TWITTER|TWEET)[:\\s]*\\n|$)`,
+    `(?:^|\\n)\\s*(?:#{1,3}\\s*)?(?:${labels.map((l) => l.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})[:\\s]*\\n([\\s\\S]*?)(?=\\n\\s*(?:#{1,3}\\s*)?(?:${stopPattern})[:\\s]*\\n|$)`,
     "i"
   );
   const m = text.match(pattern);
   return m ? m[1].trim() : null;
+}
+
+function extractFinalPackage(text: string): string {
+  const m = text.match(/##\s*FINAL CONTENT PACKAGE[\s\S]*/i);
+  return m ? m[0] : text;
 }
 
 const router: IRouter = Router();
@@ -102,6 +127,8 @@ router.patch("/episodes/:id", async (req, res): Promise<void> => {
     substackNote,
     linkedinPost,
     twitterPost,
+    youtubeDescription,
+    titleVariations,
   } = req.body;
 
   const updates: Record<string, unknown> = { updatedAt: new Date() };
@@ -113,6 +140,8 @@ router.patch("/episodes/:id", async (req, res): Promise<void> => {
   if (substackNote !== undefined) updates.substackNote = substackNote;
   if (linkedinPost !== undefined) updates.linkedinPost = linkedinPost;
   if (twitterPost !== undefined) updates.twitterPost = twitterPost;
+  if (youtubeDescription !== undefined) updates.youtubeDescription = youtubeDescription;
+  if (titleVariations !== undefined) updates.titleVariations = titleVariations;
 
   const [episode] = await db
     .update(episodesTable)
@@ -190,17 +219,18 @@ router.post("/episodes/:id/full-episode", async (req, res): Promise<void> => {
     .where(eq(pipelineRunsTable.id, run.id));
 
   if (completedRun?.editorOutput) {
-    const output = completedRun.editorOutput;
-    const parsedNote = findSection(output, ["SUBSTACK NOTE", "NEWSLETTER NOTE"]);
-    const parsedLinkedin = findSection(output, ["LINKEDIN POST", "LINKEDIN"]);
-    const parsedTwitter = findSection(output, ["TWITTER POST", "TWITTER", "TWEET"]);
+    const finalBlock = extractFinalPackage(completedRun.editorOutput);
+    const parsedArticle = findSection(finalBlock, ["SUBSTACK ARTICLE"]);
+    const parsedLinkedin = findSection(finalBlock, ["LINKEDIN POST", "LINKEDIN"]);
+    const parsedYoutube = findSection(finalBlock, ["YOUTUBE DESCRIPTION"]);
+    const parsedTitles = findSection(finalBlock, ["TITLE VARIATIONS"]);
     await db
       .update(episodesTable)
       .set({
-        substackArticle: output,
-        substackNote: parsedNote,
+        substackArticle: parsedArticle,
         linkedinPost: parsedLinkedin,
-        twitterPost: parsedTwitter,
+        youtubeDescription: parsedYoutube,
+        titleVariations: parsedTitles,
         updatedAt: new Date(),
       })
       .where(eq(episodesTable.id, id));

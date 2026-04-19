@@ -11,6 +11,8 @@ import type { PipelineRunType } from "./pipelineRunType";
 
 export interface PipelineRun {
   id: number;
+  /** @nullable */
+  episodeId?: number | null;
   type: PipelineRunType;
   /** @nullable */
   clipType?: PipelineRunClipType;

@@ -1,0 +1,233 @@
+What we're building
+Right now, every pipeline run is independent. You paste a transcript, run the analysis, see results, and everything disappears. There is no concept of an "episode" that persists or a way to run multiple clips within the same episode without re-pasting the transcript.
+We're adding a persistent project/episode structure:
+
+You create an Episode (paste the transcript once, name the guest, set the episode title)
+The Episode persists in a database. You can close the browser and come back to it.
+Within an Episode, you run multiple clip analyses. Each clip belongs to that Episode.
+You can see all Episodes on a dashboard, open any Episode, and see all clips analyzed within it.
+The Episode transcript is loaded automatically when you open an Episode. No re-pasting.
+
+Step 1: Set up a persistent database
+If the app does not already have a persistent database, add one. Use whatever is simplest for this Replit project: Replit DB, SQLite, or PostgreSQL. The database must persist across browser refreshes and server restarts.
+Create two tables (or collections):
+Table: episodes
+{
+  id: string (unique, auto-generated),
+  created_at: datetime,
+  updated_at: datetime,
+  
+  episode_name: string (e.g., "Talia Wolf - Emotional Targeting"),
+  guest_name: string (e.g., "Talia Wolf"),
+  
+  full_transcript: text (the complete episode transcript, can be very long),
+  
+  status: string ("active" or "archived"),
+  
+  clip_count: integer (number of clips analyzed in this episode, starts at 0)
+}
+Table: clip_runs
+{
+  id: string (unique, auto-generated),
+  episode_id: string (foreign key to episodes table),
+  created_at: datetime,
+  
+  clip_type: string ("vertical" or "horizontal"),
+  clip_transcript: text (the portion of the episode transcript for this clip),
+  
+  // Pipeline outputs (stored after each run completes)
+  research_output: text (full Research Analyst output),
+  surgery_output: text (full Surgery Analyst output),
+  writer_output: text (full Writer output),
+  editor_output: text (full Editor output),
+  
+  // YouTube API data
+  youtube_data: JSON (the structured array from searchYouTubeShorts),
+  
+  // Parsed approved outputs
+  approved_title: string,
+  approved_tags: string,
+  approved_hashtags: string,
+  
+  // Status
+  status: string ("processing", "completed", "error")
+}
+Step 2: Build the Episode Dashboard (new home screen)
+Replace the current home screen with an Episode Dashboard. This is the first thing the user sees when they open the app.
+Dashboard layout:
+Header:
+
+App title: "GrowthStack Content Pipeline"
+"New Episode" button (prominent, primary action)
+
+Episode list:
+Show all episodes from the database, sorted by updated_at (newest first). Each episode card shows:
+
+Episode name
+Guest name
+Date created
+Number of clips analyzed
+Status badge ("active" or "archived")
+Last updated date
+
+Each card is clickable. Clicking opens that Episode.
+Empty state:
+If no episodes exist, show: "No episodes yet. Create your first episode to get started." with a prominent "New Episode" button.
+Step 3: Build the New Episode flow
+When the user clicks "New Episode," show a form:
+
+Episode Name (text input, required): e.g., "The Framework Behind Websites That Actually Convert"
+Guest Name (text input, required): e.g., "Talia Wolf"
+Full Episode Transcript (large textarea, required): "Paste the full episode transcript here. This is stored once and used for all clip analyses within this episode."
+
+Show word count below the textarea
+
+
+Create Episode button
+
+When submitted:
+
+Save the episode to the database
+Redirect to the Episode workspace (Step 4)
+
+Step 4: Build the Episode Workspace
+This is the main working screen for an episode. It replaces the current pipeline input/output screen.
+Layout:
+Top bar:
+
+Back arrow to return to Episode Dashboard
+Episode name and guest name displayed
+Transcript word count
+Clip count: "X clips analyzed"
+"Archive Episode" button (moves it to archived status, still viewable but visually deprioritized on dashboard)
+
+Two sections below:
+Section A: Run New Clip Analysis
+This section contains the clip analysis input form. It should look similar to the current "Video Clip" input mode but WITHOUT the transcript input (because the transcript is already stored in the episode):
+
+Clip Orientation: Vertical / Horizontal toggle (same as current)
+Video file upload: Optional clip reference (same as current)
+Locate clip in transcript: The sentence search input (same as current "type a sentence" flow). The fuzzy matching runs against the episode's stored transcript, not a pasted transcript.
+Confirm selection and adjust boundaries (same as current expand/contract flow)
+Analyze button to start the pipeline
+
+When the pipeline runs:
+
+The episode's stored transcript is loaded from the database (not pasted by the user)
+Everything else works exactly as the current pipeline
+When the pipeline completes, the run is saved to the clip_runs table with episode_id linking it to this episode
+Results are displayed (same as current results UI with Steps 1-5)
+
+After viewing results, the user can:
+
+"Analyze Another Clip" button: clears the clip input, stays on the same Episode workspace, ready for the next clip
+"Back to Episode" button: returns to the Episode workspace showing all clips
+
+Section B: Previous Clip Runs
+Below the "Run New Clip Analysis" section (or as a tab), show all previous clip runs for this episode:
+For each clip run, show a card with:
+
+Date/time of the run
+Clip type (vertical/horizontal)
+Approved title (if available)
+First line of the clip transcript (truncated preview)
+Status badge (completed/error)
+
+Each card is expandable or clickable to show the full results (same results UI as when the run first completed). This lets the user revisit any previous clip's outputs without re-running the analysis.
+Step 5: Migrate the existing pipeline
+The current pipeline logic (Research Analyst, Surgery Analyst, Writer, Editor calls) does not change AT ALL. The only changes are:
+
+Where the episode transcript comes from: Instead of reading from a textarea the user just pasted, read from the episode's stored full_transcript field in the database.
+Where clip results are saved: Instead of only displaying results in the UI (and losing them on page refresh), also save them to the clip_runs table.
+What happens on "Next Clip": Instead of clearing everything and going back to a blank input screen, clear only the clip-specific data and stay on the Episode workspace, ready for the next clip analysis.
+
+The prompts, the API calls, the agent chain, the results UI, the revision flow - NONE of these change.
+Step 6: Handle the Full Episode mode
+The current app has a "Full Episode" mode that generates Substack articles, LinkedIn posts, and Twitter posts for the full episode (not a clip). This should also be tied to an Episode:
+
+In the Episode workspace, add a tab or button: "Generate Full Episode Content"
+This runs the existing Full Episode pipeline using the stored episode transcript
+The output is saved to the episode record (add fields for substack_article, linkedin_post, twitter_post, substack_note to the episodes table)
+The user can view and revisit these outputs from the Episode workspace
+
+Step 7: Handle edge cases
+Editing the transcript after creation
+Add an "Edit Transcript" button in the Episode workspace that lets the user modify the stored transcript. This is needed because sometimes you notice typos or want to add timestamps after the initial paste. After editing, save the updated transcript. Previous clip runs are not affected (they already stored their clip_transcript locally).
+Deleting a clip run
+Add a delete option on each clip run card. Confirm before deleting. "Delete this clip analysis? This cannot be undone."
+Deleting an episode
+Add a delete option in the Episode workspace (under a "..." menu or at the bottom). Confirm: "Delete this episode and all X clip analyses? This cannot be undone." Deleting an episode deletes all its clip_runs as well.
+What NOT to change
+
+Do not change any agent prompts
+Do not change the pipeline flow (Research Analyst -> Surgery Analyst -> Writer -> Editor)
+Do not change the results UI (Steps 1-5)
+Do not change the revision/feedback flow
+Do not change the YouTube API integration
+Do not change the sentence search / fuzzy matching logic (just change its source from a pasted textarea to the stored transcript)
+
+What to test
+Creating an Episode
+
+ Click "New Episode" from the dashboard
+ Fill in episode name, guest name, paste transcript
+ Click "Create Episode"
+ Verify you're taken to the Episode workspace
+ Verify the transcript word count appears in the top bar
+ Go back to the dashboard
+ Verify the episode appears in the list with correct name, guest, date, "0 clips"
+
+Running a clip within an Episode
+
+ Open the episode
+ Select clip orientation (vertical/horizontal)
+ Use the sentence search to locate a clip in the transcript
+ Confirm the selection
+ Run the analysis
+ Verify the pipeline completes and results display correctly
+ Verify all 5 steps of the results UI work (edit instructions, copy/publish, designer, competitive, marketing)
+ Click "Analyze Another Clip"
+ Verify you're back at the clip input with the episode still loaded (no need to re-paste transcript)
+ Run a second clip
+ Verify it completes
+
+Viewing previous clip runs
+
+ After running 2+ clips, check the "Previous Clip Runs" section
+ Verify both clips appear as cards with correct titles and types
+ Click on a previous clip run
+ Verify you can see the full results from that run
+ Verify the results are identical to what you saw when the run first completed
+
+Persistence
+
+ Close the browser completely
+ Reopen the app
+ Verify the episode appears on the dashboard
+ Open the episode
+ Verify the transcript is still there (check word count)
+ Verify previous clip runs are still listed
+ Verify you can open a previous clip run and see its results
+
+Multiple episodes
+
+ Create a second episode with a different transcript
+ Verify both episodes appear on the dashboard
+ Open each episode and verify the correct transcript is loaded
+ Run a clip in the second episode
+ Verify clip runs are correctly associated (episode 1's clips don't appear in episode 2)
+
+Edit and delete
+
+ Edit a transcript in an existing episode
+ Verify the change persists after refresh
+ Delete a clip run
+ Verify it disappears from the list
+ Verify other clip runs are unaffected
+
+Full Episode mode
+
+ In an Episode workspace, click "Generate Full Episode Content"
+ Verify the full episode pipeline runs using the stored transcript
+ Verify the outputs (Substack article, LinkedIn post, etc.) are displayed and saved
+ Close and reopen. Verify the full episode outputs are still accessible.

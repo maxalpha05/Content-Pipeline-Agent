@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, CheckCircle2, Clock, Terminal, PenTool, Edit3, PlayCircle, Loader2, Send, RefreshCw, Trash2, Eye, ThumbsUp, MessageSquare, ExternalLink, RotateCcw } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Clock, Terminal, PenTool, Edit3, PlayCircle, Loader2, Send, RefreshCw, Trash2, Eye, ThumbsUp, MessageSquare, ExternalLink, RotateCcw, Video } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 
 interface YouTubeShort {
@@ -441,6 +441,14 @@ export default function RunDetail() {
                 <CheckCircle2 className="h-4 w-4" />
                 Approved
               </Button>
+            )}
+            {run.episodeId && (
+              <Link href={`/episodes/${run.episodeId}?reanalyze=true`}>
+                <Button variant="default" size="sm" className="gap-2">
+                  <Video className="h-3.5 w-3.5" />
+                  Analyze Another Clip
+                </Button>
+              </Link>
             )}
           </div>
         </div>

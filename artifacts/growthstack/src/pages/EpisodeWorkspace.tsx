@@ -331,19 +331,21 @@ export default function EpisodeWorkspace() {
     }
   }
 
-  const hasFullEpisodeContent = !!(episode.substackArticle);
-  const substackContent = hasFullEpisodeContent
-    ? findSection(episode.substackArticle!, ["SUBSTACK ARTICLE"])
+  const hasFullEpisodeContent = !!(episode.substackArticle || episode.substackNote || episode.linkedinPost || episode.twitterPost);
+  // Prefer dedicated DB fields; fall back to parsing the combined editor output in substackArticle
+  const substackContent = episode.substackArticle
+    ? findSection(episode.substackArticle, ["SUBSTACK ARTICLE"]) || (
+        !episode.substackNote && !episode.linkedinPost && !episode.twitterPost
+          ? episode.substackArticle
+          : null
+      )
     : null;
-  const substackNote = hasFullEpisodeContent
-    ? findSection(episode.substackArticle!, ["SUBSTACK NOTE", "NEWSLETTER NOTE"])
-    : null;
-  const linkedinContent = hasFullEpisodeContent
-    ? findSection(episode.substackArticle!, ["LINKEDIN POST", "LINKEDIN"])
-    : null;
-  const twitterContent = hasFullEpisodeContent
-    ? findSection(episode.substackArticle!, ["TWITTER POST", "TWITTER", "TWEET"])
-    : null;
+  const substackNote = episode.substackNote
+    || (episode.substackArticle ? findSection(episode.substackArticle, ["SUBSTACK NOTE", "NEWSLETTER NOTE"]) : null);
+  const linkedinContent = episode.linkedinPost
+    || (episode.substackArticle ? findSection(episode.substackArticle, ["LINKEDIN POST", "LINKEDIN"]) : null);
+  const twitterContent = episode.twitterPost
+    || (episode.substackArticle ? findSection(episode.substackArticle, ["TWITTER POST", "TWITTER", "TWEET"]) : null);
 
   return (
     <AppLayout>
@@ -408,7 +410,8 @@ export default function EpisodeWorkspace() {
         </div>
 
         {/* Section A: Clip Input */}
-        <Card className="shadow-sm border-border/50" ref={clipFormRef as any}>
+        <div ref={clipFormRef}>
+        <Card className="shadow-sm border-border/50">
           <CardHeader className="pb-4">
             <div className="flex items-center gap-2">
               <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
@@ -475,6 +478,7 @@ export default function EpisodeWorkspace() {
             </div>
           </CardContent>
         </Card>
+        </div>
 
         {/* Section B: Previous Clip Runs */}
         <div className="space-y-3">

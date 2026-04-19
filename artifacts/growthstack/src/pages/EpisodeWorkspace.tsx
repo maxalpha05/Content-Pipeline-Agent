@@ -324,7 +324,7 @@ export default function EpisodeWorkspace() {
     }
   }
 
-  const hasFullEpisodeContent = !!(episode.substackArticle || episode.linkedinPost || episode.youtubeDescription || episode.titleVariations);
+  const hasFullEpisodeContent = !!episode.substackArticle;
   // Use dedicated DB fields; these are always parsed from the FINAL CONTENT PACKAGE block
   const substackContent = episode.substackArticle || null;
   const linkedinContent = episode.linkedinPost || null;
@@ -553,7 +553,7 @@ export default function EpisodeWorkspace() {
                 <PlatformCard label="LinkedIn Post" content={linkedinContent} maxChars={3000} />
               )}
               {youtubeContent && (
-                <PlatformCard label="YouTube Description" content={youtubeContent} maxChars={5000} />
+                <PlatformCard label="YouTube Description" content={youtubeContent} />
               )}
               {titleVariationsContent && (
                 <PlatformCard label="Title Variations" content={titleVariationsContent} />

@@ -29,7 +29,14 @@ interface SurgeryParsed {
 
 interface EditorParsed {
   title: string; tags: string; hashtags: string;
+  youtubeDescription: string; titleVariations: string;
   linkedin: string; twitter: string; marketingAngle: string;
+}
+
+interface TitleVariation {
+  angle: string;
+  title: string;
+  note: string;
 }
 
 interface ResearchParsed {
@@ -112,13 +119,36 @@ function parseEditor(editorText: string | null | undefined, writerText: string |
   }
 
   return {
-    title:         resolve(["TITLE"]),
-    tags:          resolve(["YOUTUBE TAGS", "YOUTUBE_TAGS", "TAGS"]),
-    hashtags:      resolve(["INSTAGRAM HASHTAGS", "INSTAGRAM_HASHTAGS", "HASHTAGS"]),
-    linkedin:      resolve(["LINKEDIN POST", "LINKEDIN"]),
-    twitter:       resolve(["TWITTER POST", "TWITTER", "TWEET"]),
-    marketingAngle:resolve(["MARKETING ANGLE", "MARKETING_ANGLE"]),
+    title:              resolve(["TITLE"]),
+    tags:               resolve(["YOUTUBE TAGS", "YOUTUBE_TAGS", "TAGS"]),
+    hashtags:           resolve(["INSTAGRAM HASHTAGS", "INSTAGRAM_HASHTAGS", "HASHTAGS"]),
+    youtubeDescription: resolve(["YOUTUBE DESCRIPTION"]),
+    titleVariations:    resolve(["TITLE VARIATIONS"]),
+    linkedin:           resolve(["LINKEDIN POST", "LINKEDIN"]),
+    twitter:            resolve(["TWITTER POST", "TWITTER", "TWEET"]),
+    marketingAngle:     resolve(["MARKETING ANGLE", "MARKETING_ANGLE"]),
   };
+}
+
+function parseTitleVariations(text: string): TitleVariation[] {
+  const variations: TitleVariation[] = [];
+  if (!text) return variations;
+  const lines = text.split("\n");
+  let current: Partial<TitleVariation> | null = null;
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) continue;
+    // Match numbered entries like "1. (SEO) Title text" or "1. (AEO) Something"
+    const headerMatch = line.match(/^\d+\.\s+\(([^)]+)\)\s+(.+)$/);
+    if (headerMatch) {
+      if (current?.title) variations.push(current as TitleVariation);
+      current = { angle: headerMatch[1], title: headerMatch[2], note: "" };
+    } else if (current && !current.note) {
+      current.note = line;
+    }
+  }
+  if (current?.title) variations.push(current as TitleVariation);
+  return variations;
 }
 
 function parseResearch(text: string | null | undefined): ResearchParsed {
@@ -799,11 +829,58 @@ export default function ClipResults({ run, runId, isProcessing }: ClipResultsPro
             </Card>
           )}
 
+          {/* Title Variations */}
+          {editor.titleVariations && (() => {
+            const variations = parseTitleVariations(editor.titleVariations);
+            if (variations.length === 0) return (
+              <PlatformCard
+                label="Title Variations"
+                badge={<PlatformBadge color="bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400">YT</PlatformBadge>}
+                content={editor.titleVariations}
+              />
+            );
+            return (
+              <Card className="border-border/60 shadow-sm">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Title Variations</span>
+                      <PlatformBadge color="bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400">YT</PlatformBadge>
+                    </div>
+                    <CopyButton text={variations.map(v => `(${v.angle}) ${v.title}`).join("\n")} label="Copy all" />
+                  </div>
+                  <div className="space-y-2">
+                    {variations.map((v, i) => (
+                      <div key={i} className="flex items-start gap-3 group">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mt-1 w-16 shrink-0">{v.angle}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground leading-snug">{v.title}</p>
+                          {v.note && <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{v.note}</p>}
+                          <p className={`text-[10px] mt-0.5 ${v.title.length > 80 ? "text-destructive" : "text-muted-foreground"}`}>
+                            {v.title.length} chars
+                          </p>
+                        </div>
+                        <CopyButton text={v.title} />
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })()}
+
           {/* YouTube Tags */}
           <PlatformCard
             label="YouTube Tags"
             badge={<PlatformBadge color="bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400">YT</PlatformBadge>}
             content={editor.tags}
+          />
+
+          {/* YouTube Description */}
+          <PlatformCard
+            label="YouTube Description"
+            badge={<PlatformBadge color="bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400">YT</PlatformBadge>}
+            content={editor.youtubeDescription}
           />
 
           {/* Instagram Hashtags */}

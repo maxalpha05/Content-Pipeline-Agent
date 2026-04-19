@@ -227,6 +227,45 @@ Written from the GrowthStack account. Under 220 characters total. Hook-first. Le
 
 FOR BOTH CLIP TYPES:
 
+## YOUTUBE DESCRIPTION
+Write a structured YouTube video description using the competitive research across all platforms (YouTube, Instagram, TikTok, LinkedIn, Twitter) and the clip transcript.
+
+Structure it exactly as follows:
+
+Line 1-2 (the hook, shown before "Show more"): One or two tight sentences delivering the core insight or tension from the clip. Include the primary search keyword naturally. These lines decide whether someone clicks "Show more" — make them earn it. No fluff, no setup. Start with the insight.
+
+[blank line]
+
+Body paragraph (3-4 sentences): Expand on the insight. Name the guest and their relevant context in one sentence. Weave in 3-4 additional keywords drawn from the competitive research tags and cross-platform patterns. Surface what makes this clip specifically useful, not just what it is about.
+
+[blank line]
+
+Links section (use these exact placeholders):
+Full episode: [EPISODE_LINK]
+Subscribe: [SUBSCRIBE_LINK]
+
+[blank line]
+
+3 hashtags drawn from the Instagram hashtag set and top YouTube search patterns. YouTube displays hashtags above the title, so pick the 3 most search-relevant ones.
+
+Rules: 150-300 words total. No emojis. No bullet point lists — prose only in the body. No em dashes. No stock openers.
+
+## TITLE VARIATIONS
+Produce exactly 5 numbered title variations for the same clip, each optimized for a different intent. Draw from competitive title patterns in the research and the specific pain points or insights in the clip transcript.
+
+Format each variation as:
+[number]. ([angle label]) [title text]
+[one clause explaining which competitive pattern or clip moment this draws from]
+
+The five angles, in order:
+1. (SEO) Lead with the highest-volume search keyword from the research, structured to match how people actively search for this topic. Keyword-first.
+2. (AEO) Question format that mirrors exactly how someone would ask an AI assistant or search engine about this topic. Should feel like a natural spoken question.
+3. (Pain point) Lead with the specific frustration or problem the clip addresses. Not generic — name the actual pain. Specific enough that the right person feels called out.
+4. (Curiosity) A counterintuitive claim or unexpected framing that creates a knowledge gap. The viewer should think "wait, what?" and need to watch to resolve it.
+5. (Outcome) Lead with the specific result or takeaway the viewer will walk away with. Concrete, not vague.
+
+Rules for all variations: no em dashes, no banned phrases, under 80 characters preferred (80 max), no clickbait, each must promise exactly what the clip delivers.
+
 ## MARKETING ANGLE
 One paragraph explaining the strategic positioning of this clip. What audience segment does it target? What need does it meet? Why would someone share it? This is internal strategy, not published content.`;
 
@@ -253,6 +292,8 @@ Content quality (evaluate and rewrite if failing):
 - Does the LinkedIn post actually match what the clip contains? If the framing promises something the clip doesn't deliver, REWRITE to align.
 - Does the Twitter hook promise something the clip delivers? If not, REWRITE.
 - Is the Twitter post over 220 characters? TRIM. Count the characters and confirm.
+- YouTube Description: check for em dashes and banned phrases. Are the first 2 lines tight and keyword-rich (not setup/fluff)? No emojis, no bullet lists in the body. If the first lines are weak or generic, REWRITE them.
+- Title Variations: check each of the 5 variations individually against the style rules. If any variation uses an em dash, banned phrase, or exceeds 80 characters, REWRITE that variation only. Confirm all 5 angles are present and distinct.
 
 For each output, mark one of:
 - FINAL: output passes all checks
@@ -272,6 +313,12 @@ Then output every section using the same ## HEADING format as the Writer, in thi
 
 ## INSTAGRAM HASHTAGS
 [final hashtags — verbatim from Writer if FINAL, corrected version if REVISED]
+
+## YOUTUBE DESCRIPTION
+[final description — verbatim from Writer if FINAL, corrected version if REVISED]
+
+## TITLE VARIATIONS
+[final variations — verbatim from Writer if FINAL, corrected version if REVISED]
 
 ## LINKEDIN POST
 [final LinkedIn post — only if Writer produced this section]

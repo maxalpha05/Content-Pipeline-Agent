@@ -281,7 +281,7 @@ export async function runClipPipeline(
 
     sendEvent({ type: "stage", stage: "analyzing", progress: 30 });
 
-    const surgeryUserMessage = `COMPETITIVE RESEARCH FINDINGS:\n${researchOutput}\n\nFULL EPISODE TRANSCRIPT:\n${episodeTranscript}\n\nCLIP TRANSCRIPT:\n${clipTranscript}\n\nEvaluate this clip against the three-point structure. Use the episode transcript to find better opening and closing lines if needed. The final revised transcript must be 150-200 words (60-80 seconds of speech).`;
+    const surgeryUserMessage = `COMPETITIVE RESEARCH FINDINGS:\n${researchOutput}\n\nFULL EPISODE TRANSCRIPT:\n${episodeTranscript}\n\nCLIP TRANSCRIPT:\n${clipTranscript}\n\nEvaluate this clip against the three-point structure. Use the episode transcript only to find better opening and closing lines (Intrigue / Close). For the Value section, only reference lines that appear verbatim in the CLIP TRANSCRIPT above.`;
 
     const surgeryOutput = await callAgent(
       SURGERY_ANALYST_PROMPT,

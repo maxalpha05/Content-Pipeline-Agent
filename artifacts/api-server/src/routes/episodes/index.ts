@@ -3,6 +3,15 @@ import { eq, desc, sql } from "drizzle-orm";
 import { db, episodesTable, pipelineRunsTable } from "@workspace/db";
 import { runEpisodePipeline } from "../../lib/pipeline/orchestrator";
 
+function findSection(text: string, labels: string[]): string | null {
+  const pattern = new RegExp(
+    `(?:^|\\n)\\s*(?:#{1,3}\\s*)?(?:${labels.map((l) => l.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})[:\\s]*\\n([\\s\\S]*?)(?=\\n\\s*(?:#{1,3}\\s*)?(?:SUBSTACK ARTICLE|SUBSTACK NOTE|NEWSLETTER NOTE|LINKEDIN POST|LINKEDIN|TWITTER POST|TWITTER|TWEET)[:\\s]*\\n|$)`,
+    "i"
+  );
+  const m = text.match(pattern);
+  return m ? m[1].trim() : null;
+}
+
 const router: IRouter = Router();
 
 router.get("/episodes", async (_req, res): Promise<void> => {
@@ -181,10 +190,17 @@ router.post("/episodes/:id/full-episode", async (req, res): Promise<void> => {
     .where(eq(pipelineRunsTable.id, run.id));
 
   if (completedRun?.editorOutput) {
+    const output = completedRun.editorOutput;
+    const parsedNote = findSection(output, ["SUBSTACK NOTE", "NEWSLETTER NOTE"]);
+    const parsedLinkedin = findSection(output, ["LINKEDIN POST", "LINKEDIN"]);
+    const parsedTwitter = findSection(output, ["TWITTER POST", "TWITTER", "TWEET"]);
     await db
       .update(episodesTable)
       .set({
-        substackArticle: completedRun.editorOutput,
+        substackArticle: output,
+        substackNote: parsedNote,
+        linkedinPost: parsedLinkedin,
+        twitterPost: parsedTwitter,
         updatedAt: new Date(),
       })
       .where(eq(episodesTable.id, id));

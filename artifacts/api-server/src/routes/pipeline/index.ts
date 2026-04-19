@@ -141,6 +141,16 @@ router.delete("/pipeline/runs/:id", async (req, res): Promise<void> => {
     return;
   }
 
+  if (run.episodeId && run.type === "clip") {
+    await db
+      .update(episodesTable)
+      .set({
+        clipCount: drizzleSql`GREATEST(${episodesTable.clipCount} - 1, 0)`,
+        updatedAt: new Date(),
+      })
+      .where(eq(episodesTable.id, run.episodeId));
+  }
+
   res.sendStatus(204);
 });
 

@@ -374,7 +374,7 @@ export default function RunDetail() {
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-3">
-              <Link href="/">
+              <Link href={run.episodeId ? `/episodes/${run.episodeId}?reanalyze=true` : "/"}>
                 <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
@@ -402,7 +402,7 @@ export default function RunDetail() {
                   deleteRun.mutate({ id: runId }, {
                     onSuccess: () => {
                       toast({ title: "Run deleted" });
-                      setLocation("/");
+                      setLocation(run.episodeId ? `/episodes/${run.episodeId}` : "/");
                     }
                   });
                 }

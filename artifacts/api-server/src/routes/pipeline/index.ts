@@ -22,6 +22,7 @@ router.get("/pipeline/runs", async (_req, res): Promise<void> => {
   const runs = await db
     .select({
       id: pipelineRunsTable.id,
+      episodeId: pipelineRunsTable.episodeId,
       type: pipelineRunsTable.type,
       clipType: pipelineRunsTable.clipType,
       status: pipelineRunsTable.status,

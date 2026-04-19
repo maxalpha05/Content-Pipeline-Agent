@@ -74,16 +74,14 @@ function parseSurgery(text: string | null | undefined): SurgeryParsed {
   return { intrigue, value, close, transcriptLines, wordCount: wordCountLine };
 }
 
-function findEditorSection(text: string, labels: string[]): string {
+function findSection(text: string, labels: string[]): string {
   for (const label of labels) {
-    // Try ## LABEL (Writer format that Editor may preserve)
     const mdMatch = text.match(new RegExp(`^##\\s+${label}\\s*$`, "im"));
     if (mdMatch && mdMatch.index != null) {
       const after = text.slice(mdMatch.index + mdMatch[0].length);
       const next = after.search(/^##\s/im);
       return (next === -1 ? after : after.slice(0, next)).trim();
     }
-    // Try FINAL - LABEL: or REVISED - LABEL (issue):
     const labelRe = label.replace(/[()]/g, "\\$&");
     const inline = text.match(
       new RegExp(`(?:FINAL|REVISED)[^\\n]*?\\b${labelRe}\\b[^:]*:\\s*([\\s\\S]*?)(?=\\n(?:FINAL|REVISED)\\b|$)`, "i")
@@ -93,15 +91,33 @@ function findEditorSection(text: string, labels: string[]): string {
   return "";
 }
 
-function parseEditor(text: string | null | undefined): EditorParsed {
-  const t = text || "";
+function parseEditor(editorText: string | null | undefined, writerText: string | null | undefined): EditorParsed {
+  const editor = editorText || "";
+  const writer = writerText || "";
+
+  // Tier 1: search within the ## FINAL CONTENT PACKAGE block (new editor format)
+  const pkgMatch = editor.match(/^##\s+FINAL CONTENT PACKAGE\s*$/im);
+  const pkg = pkgMatch && pkgMatch.index != null ? editor.slice(pkgMatch.index + pkgMatch[0].length) : "";
+
+  function resolve(labels: string[]): string {
+    if (pkg) {
+      const v = findSection(pkg, labels);
+      if (v) return v;
+    }
+    // Tier 2: search full editor output (backward compat with old format)
+    const v2 = findSection(editor, labels);
+    if (v2) return v2;
+    // Tier 3: fall back to writer output (always has ## HEADING format)
+    return findSection(writer, labels);
+  }
+
   return {
-    title:         findEditorSection(t, ["TITLE"]),
-    tags:          findEditorSection(t, ["YOUTUBE TAGS", "YOUTUBE_TAGS", "TAGS"]),
-    hashtags:      findEditorSection(t, ["INSTAGRAM HASHTAGS", "INSTAGRAM_HASHTAGS", "HASHTAGS"]),
-    linkedin:      findEditorSection(t, ["LINKEDIN POST", "LINKEDIN"]),
-    twitter:       findEditorSection(t, ["TWITTER POST", "TWITTER", "TWEET"]),
-    marketingAngle:findEditorSection(t, ["MARKETING ANGLE", "MARKETING_ANGLE"]),
+    title:         resolve(["TITLE"]),
+    tags:          resolve(["YOUTUBE TAGS", "YOUTUBE_TAGS", "TAGS"]),
+    hashtags:      resolve(["INSTAGRAM HASHTAGS", "INSTAGRAM_HASHTAGS", "HASHTAGS"]),
+    linkedin:      resolve(["LINKEDIN POST", "LINKEDIN"]),
+    twitter:       resolve(["TWITTER POST", "TWITTER", "TWEET"]),
+    marketingAngle:resolve(["MARKETING ANGLE", "MARKETING_ANGLE"]),
   };
 }
 
@@ -656,7 +672,7 @@ export default function ClipResults({ run, runId, isProcessing }: ClipResultsPro
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
 
   const surgery  = parseSurgery(run.surgeryOutput);
-  const editor   = parseEditor(run.editorOutput);
+  const editor   = parseEditor(run.editorOutput, run.writerOutput);
   const research = parseResearch(run.researchOutput);
   const thumbnailRefs = parseThumbnailRefs(research.thumbnails);
 

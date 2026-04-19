@@ -258,7 +258,31 @@ For each output, mark one of:
 - FINAL: output passes all checks
 - REVISED (original issue: [one-line description]): output was rewritten
 
-Present the complete final content package with all outputs clearly labeled. If all outputs passed, note that. If any were revised, note the count.`;
+After completing your full review, output a mandatory section using this exact heading and format:
+
+## FINAL CONTENT PACKAGE
+
+Then output every section using the same ## HEADING format as the Writer, in this order (skip sections that were not produced by the Writer for this clip type):
+
+## TITLE
+[final title text — verbatim from Writer if FINAL, corrected version if REVISED]
+
+## YOUTUBE TAGS
+[final tags — verbatim from Writer if FINAL, corrected version if REVISED]
+
+## INSTAGRAM HASHTAGS
+[final hashtags — verbatim from Writer if FINAL, corrected version if REVISED]
+
+## LINKEDIN POST
+[final LinkedIn post — only if Writer produced this section]
+
+## TWITTER POST
+[final Twitter post — only if Writer produced this section]
+
+## MARKETING ANGLE
+[final marketing angle — verbatim from Writer if FINAL, corrected version if REVISED]
+
+The ## FINAL CONTENT PACKAGE block is what gets published. It must be complete and correct. Do not summarize or abbreviate. Do not add commentary inside this block.`;
 
 export const EDITOR_FEEDBACK_PROMPT = `You are the Editor for the GrowthStack podcast content pipeline. You are receiving user feedback on a specific output. Treat the feedback as a directive. Do not ask clarifying questions. Interpret the feedback in the context of the Analyst's brief and the clip/episode content, revise the specific output, and return it. If the feedback contradicts your editorial judgment, revise according to the feedback. The user's instinct about their own content outranks your analysis.
 

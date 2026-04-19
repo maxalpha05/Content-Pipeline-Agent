@@ -12,6 +12,8 @@ tags:
     description: Health operations
   - name: pipeline
     description: Content pipeline operations
+  - name: episodes
+    description: Episode management operations
 paths:
   /healthz:
     get:
@@ -26,6 +28,131 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /episodes:
+    get:
+      operationId: listEpisodes
+      tags: [episodes]
+      summary: List all episodes
+      responses:
+        "200":
+          description: List of episodes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Episode"
+    post:
+      operationId: createEpisode
+      tags: [episodes]
+      summary: Create a new episode
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEpisodeBody"
+      responses:
+        "201":
+          description: Created episode
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Episode"
+  /episodes/{id}:
+    get:
+      operationId: getEpisode
+      tags: [episodes]
+      summary: Get an episode with its clip runs
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Episode with runs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EpisodeDetail"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PipelineError"
+    patch:
+      operationId: updateEpisode
+      tags: [episodes]
+      summary: Update an episode
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateEpisodeBody"
+      responses:
+        "200":
+          description: Updated episode
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Episode"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PipelineError"
+    delete:
+      operationId: deleteEpisode
+      tags: [episodes]
+      summary: Delete an episode and all its clip runs
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PipelineError"
+  /episodes/{id}/full-episode:
+    post:
+      operationId: runFullEpisode
+      tags: [episodes]
+      summary: Run the full episode pipeline using the stored transcript (SSE)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: SSE stream of pipeline progress
+          content:
+            text/event-stream: {}
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PipelineError"
   /pipeline/runs:
     get:
       operationId: listPipelineRuns
@@ -183,11 +310,120 @@ components:
           type: string
       required:
         - status
+    Episode:
+      type: object
+      properties:
+        id:
+          type: integer
+        episodeName:
+          type: string
+        guestName:
+          type: string
+        fullTranscript:
+          type: string
+        status:
+          type: string
+          enum: [active, archived]
+        clipCount:
+          type: integer
+        substackArticle:
+          type: ["string", "null"]
+        substackNote:
+          type: ["string", "null"]
+        linkedinPost:
+          type: ["string", "null"]
+        twitterPost:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - episodeName
+        - guestName
+        - fullTranscript
+        - status
+        - clipCount
+        - createdAt
+        - updatedAt
+    EpisodeRunCard:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+        clipType:
+          type: ["string", "null"]
+        status:
+          type: string
+        title:
+          type: ["string", "null"]
+        clipTranscript:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - type
+        - status
+        - createdAt
+    EpisodeDetail:
+      allOf:
+        - $ref: "#/components/schemas/Episode"
+        - type: object
+          properties:
+            runs:
+              type: array
+              items:
+                $ref: "#/components/schemas/EpisodeRunCard"
+          required:
+            - runs
+    CreateEpisodeBody:
+      type: object
+      properties:
+        episodeName:
+          type: string
+        guestName:
+          type: string
+        fullTranscript:
+          type: string
+          minLength: 100
+      required:
+        - episodeName
+        - guestName
+        - fullTranscript
+    UpdateEpisodeBody:
+      type: object
+      properties:
+        episodeName:
+          type: string
+        guestName:
+          type: string
+        fullTranscript:
+          type: string
+        status:
+          type: string
+          enum: [active, archived]
+        substackArticle:
+          type: ["string", "null"]
+        substackNote:
+          type: ["string", "null"]
+        linkedinPost:
+          type: ["string", "null"]
+        twitterPost:
+          type: ["string", "null"]
     PipelineRun:
       type: object
       properties:
         id:
           type: integer
+        episodeId:
+          type: ["integer", "null"]
         type:
           type: string
           enum: [episode, clip]
@@ -216,6 +452,8 @@ components:
       properties:
         id:
           type: integer
+        episodeId:
+          type: ["integer", "null"]
         type:
           type: string
           enum: [episode, clip]
@@ -271,9 +509,11 @@ components:
           type: string
         clipTranscript:
           type: string
+        episodeId:
+          type: integer
+          description: When provided, the episode's stored transcript is used and clip_count is incremented.
       required:
         - type
-        - episodeTranscript
     SubmitFeedbackBody:
       type: object
       properties:

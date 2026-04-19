@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, sql as drizzleSql } from "drizzle-orm";
 import { db, pipelineRunsTable, episodesTable } from "@workspace/db";
 import {
   CreatePipelineRunBody,
@@ -67,7 +67,7 @@ router.post("/pipeline/runs", async (req, res): Promise<void> => {
     await db
       .update(episodesTable)
       .set({
-        clipCount: episode.clipCount + 1,
+        clipCount: drizzleSql`${episodesTable.clipCount} + 1`,
         updatedAt: new Date(),
       })
       .where(eq(episodesTable.id, episodeId));

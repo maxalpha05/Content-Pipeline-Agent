@@ -17,13 +17,17 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  CreateEpisodeBody,
   CreatePipelineRunBody,
+  Episode,
+  EpisodeDetail,
   HealthStatus,
   PipelineDashboard,
   PipelineError,
   PipelineRun,
   PipelineRunDetail,
   SubmitFeedbackBody,
+  UpdateEpisodeBody,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -857,4 +861,311 @@ export function useGetPipelineDashboard<
   };
 
   return { ...query, queryKey: queryOptions.queryKey };
+}
+
+// ─── Episodes ────────────────────────────────────────────────────────────────
+
+export const getListEpisodesUrl = () => `/api/episodes`;
+
+export const listEpisodes = async (options?: RequestInit): Promise<Episode[]> =>
+  customFetch<Episode[]>(getListEpisodesUrl(), { ...options, method: "GET" });
+
+export const getListEpisodesQueryKey = () => [`/api/episodes`] as const;
+
+export const getListEpisodesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listEpisodes>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<Awaited<ReturnType<typeof listEpisodes>>, TError, TData>;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+  const queryKey = queryOptions?.queryKey ?? getListEpisodesQueryKey();
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listEpisodes>>> = ({ signal }) =>
+    listEpisodes({ signal, ...requestOptions });
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listEpisodes>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export function useListEpisodes<
+  TData = Awaited<ReturnType<typeof listEpisodes>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<Awaited<ReturnType<typeof listEpisodes>>, TError, TData>;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListEpisodesQueryOptions(options);
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getGetEpisodeUrl = (id: number) => `/api/episodes/${id}`;
+
+export const getEpisode = async (id: number, options?: RequestInit): Promise<EpisodeDetail> =>
+  customFetch<EpisodeDetail>(getGetEpisodeUrl(id), { ...options, method: "GET" });
+
+export const getGetEpisodeQueryKey = (id: number) => [`/api/episodes/${id}`] as const;
+
+export const getGetEpisodeQueryOptions = <
+  TData = Awaited<ReturnType<typeof getEpisode>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<Awaited<ReturnType<typeof getEpisode>>, TError, TData>;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+  const queryKey = queryOptions?.queryKey ?? getGetEpisodeQueryKey(id);
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getEpisode>>> = ({ signal }) =>
+    getEpisode(id, { signal, ...requestOptions });
+  return { queryKey, queryFn, enabled: !!id, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getEpisode>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export function useGetEpisode<
+  TData = Awaited<ReturnType<typeof getEpisode>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<Awaited<ReturnType<typeof getEpisode>>, TError, TData>;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetEpisodeQueryOptions(id, options);
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getCreateEpisodeUrl = () => `/api/episodes`;
+
+export const createEpisode = async (
+  body: CreateEpisodeBody,
+  options?: RequestInit,
+): Promise<Episode> =>
+  customFetch<Episode>(getCreateEpisodeUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(body),
+  });
+
+export const getCreateEpisodeMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createEpisode>>,
+    TError,
+    { data: BodyType<CreateEpisodeBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createEpisode>>,
+  TError,
+  { data: BodyType<CreateEpisodeBody> },
+  TContext
+> => {
+  const mutationKey = ["createEpisode"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createEpisode>>,
+    { data: BodyType<CreateEpisodeBody> }
+  > = ({ data }) => createEpisode(data, requestOptions);
+  return { mutationFn, ...mutationOptions };
+};
+
+export function useCreateEpisode<TError = ErrorType<unknown>, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createEpisode>>,
+    TError,
+    { data: BodyType<CreateEpisodeBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createEpisode>>,
+  TError,
+  { data: BodyType<CreateEpisodeBody> },
+  TContext
+> {
+  return useMutation(getCreateEpisodeMutationOptions(options));
+}
+
+export const getUpdateEpisodeUrl = (id: number) => `/api/episodes/${id}`;
+
+export const updateEpisode = async (
+  id: number,
+  body: UpdateEpisodeBody,
+  options?: RequestInit,
+): Promise<Episode> =>
+  customFetch<Episode>(getUpdateEpisodeUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(body),
+  });
+
+export const getUpdateEpisodeMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateEpisode>>,
+    TError,
+    { id: number; data: BodyType<UpdateEpisodeBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateEpisode>>,
+  TError,
+  { id: number; data: BodyType<UpdateEpisodeBody> },
+  TContext
+> => {
+  const mutationKey = ["updateEpisode"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateEpisode>>,
+    { id: number; data: BodyType<UpdateEpisodeBody> }
+  > = ({ id, data }) => updateEpisode(id, data, requestOptions);
+  return { mutationFn, ...mutationOptions };
+};
+
+export function useUpdateEpisode<TError = ErrorType<unknown>, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateEpisode>>,
+    TError,
+    { id: number; data: BodyType<UpdateEpisodeBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateEpisode>>,
+  TError,
+  { id: number; data: BodyType<UpdateEpisodeBody> },
+  TContext
+> {
+  return useMutation(getUpdateEpisodeMutationOptions(options));
+}
+
+export const getDeleteEpisodeUrl = (id: number) => `/api/episodes/${id}`;
+
+export const deleteEpisode = async (id: number, options?: RequestInit): Promise<void> =>
+  customFetch<void>(getDeleteEpisodeUrl(id), { ...options, method: "DELETE" });
+
+export const getDeleteEpisodeMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteEpisode>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteEpisode>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteEpisode"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteEpisode>>,
+    { id: number }
+  > = ({ id }) => deleteEpisode(id, requestOptions);
+  return { mutationFn, ...mutationOptions };
+};
+
+export function useDeleteEpisode<TError = ErrorType<unknown>, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteEpisode>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteEpisode>>,
+  TError,
+  { id: number },
+  TContext
+> {
+  return useMutation(getDeleteEpisodeMutationOptions(options));
+}
+
+export const getRunFullEpisodeUrl = (id: number) => `/api/episodes/${id}/full-episode`;
+
+export const runFullEpisode = async (id: number, options?: RequestInit): Promise<unknown> =>
+  customFetch<unknown>(getRunFullEpisodeUrl(id), { ...options, method: "POST" });
+
+export const getRunFullEpisodeMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof runFullEpisode>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof runFullEpisode>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["runFullEpisode"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof runFullEpisode>>,
+    { id: number }
+  > = ({ id }) => runFullEpisode(id, requestOptions);
+  return { mutationFn, ...mutationOptions };
+};
+
+export function useRunFullEpisode<TError = ErrorType<unknown>, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof runFullEpisode>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof runFullEpisode>>,
+  TError,
+  { id: number },
+  TContext
+> {
+  return useMutation(getRunFullEpisodeMutationOptions(options));
 }

@@ -45,6 +45,8 @@ export const PipelineRunStatus = {
 
 export interface PipelineRun {
   id: number;
+  /** @nullable */
+  episodeId?: number | null;
   type: PipelineRunType;
   /** @nullable */
   clipType?: PipelineRunClipType;
@@ -91,6 +93,8 @@ export const PipelineRunDetailStatus = {
 
 export interface PipelineRunDetail {
   id: number;
+  /** @nullable */
+  episodeId?: number | null;
   type: PipelineRunDetailType;
   /** @nullable */
   clipType?: PipelineRunDetailClipType;
@@ -137,8 +141,9 @@ export const CreatePipelineRunBodyClipType = {
 export interface CreatePipelineRunBody {
   type: CreatePipelineRunBodyType;
   clipType?: CreatePipelineRunBodyClipType;
-  episodeTranscript: string;
+  episodeTranscript?: string;
   clipTranscript?: string;
+  episodeId?: number;
 }
 
 export interface SubmitFeedbackBody {
@@ -157,4 +162,50 @@ export interface PipelineDashboard {
 
 export interface PipelineError {
   error: string;
+}
+
+export interface EpisodeRunCard {
+  id: number;
+  type: string;
+  clipType?: string | null;
+  status: string;
+  title?: string | null;
+  clipTranscript?: string | null;
+  createdAt: string;
+}
+
+export interface Episode {
+  id: number;
+  episodeName: string;
+  guestName: string;
+  fullTranscript: string;
+  status: string;
+  clipCount: number;
+  substackArticle?: string | null;
+  substackNote?: string | null;
+  linkedinPost?: string | null;
+  twitterPost?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EpisodeDetail extends Episode {
+  runs: EpisodeRunCard[];
+}
+
+export interface CreateEpisodeBody {
+  episodeName: string;
+  guestName: string;
+  fullTranscript: string;
+}
+
+export interface UpdateEpisodeBody {
+  episodeName?: string;
+  guestName?: string;
+  fullTranscript?: string;
+  status?: "active" | "archived";
+  substackArticle?: string | null;
+  substackNote?: string | null;
+  linkedinPost?: string | null;
+  twitterPost?: string | null;
 }

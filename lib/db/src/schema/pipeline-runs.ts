@@ -1,9 +1,13 @@
-import { pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, integer, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+import { episodesTable } from "./episodes";
 
 export const pipelineRunsTable = pgTable("pipeline_runs", {
   id: serial("id").primaryKey(),
+  episodeId: integer("episode_id").references(() => episodesTable.id, {
+    onDelete: "cascade",
+  }),
   type: text("type").notNull(),
   clipType: text("clip_type"),
   status: text("status").notNull().default("pending"),

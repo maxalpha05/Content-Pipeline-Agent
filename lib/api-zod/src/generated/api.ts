@@ -50,8 +50,9 @@ export const ListPipelineRunsResponse = zod.array(ListPipelineRunsResponseItem);
 export const CreatePipelineRunBody = zod.object({
   type: zod.enum(["episode", "clip"]),
   clipType: zod.enum(["vertical", "horizontal"]).optional(),
-  episodeTranscript: zod.string(),
+  episodeTranscript: zod.string().optional(),
   clipTranscript: zod.string().optional(),
+  episodeId: zod.number().int().positive().optional(),
 });
 
 /**
@@ -63,6 +64,7 @@ export const GetPipelineRunParams = zod.object({
 
 export const GetPipelineRunResponse = zod.object({
   id: zod.number(),
+  episodeId: zod.number().nullish(),
   type: zod.enum(["episode", "clip"]),
   clipType: zod
     .union([
@@ -188,4 +190,65 @@ export const GetPipelineDashboardResponse = zod.object({
       updatedAt: zod.coerce.date(),
     }),
   ),
+});
+
+/**
+ * @summary Episode endpoints
+ */
+export const CreateEpisodeBody = zod.object({
+  episodeName: zod.string().min(1),
+  guestName: zod.string().min(1),
+  fullTranscript: zod.string().min(100),
+});
+
+export const UpdateEpisodeBody = zod.object({
+  episodeName: zod.string().min(1).optional(),
+  guestName: zod.string().min(1).optional(),
+  fullTranscript: zod.string().min(100).optional(),
+  status: zod.enum(["active", "archived"]).optional(),
+  substackArticle: zod.string().nullish(),
+  substackNote: zod.string().nullish(),
+  linkedinPost: zod.string().nullish(),
+  twitterPost: zod.string().nullish(),
+});
+
+export const EpisodeRunCard = zod.object({
+  id: zod.number(),
+  type: zod.string(),
+  clipType: zod.string().nullish(),
+  status: zod.string(),
+  title: zod.string().nullish(),
+  clipTranscript: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+});
+
+export const EpisodeSchema = zod.object({
+  id: zod.number(),
+  episodeName: zod.string(),
+  guestName: zod.string(),
+  fullTranscript: zod.string(),
+  status: zod.string(),
+  clipCount: zod.number(),
+  substackArticle: zod.string().nullish(),
+  substackNote: zod.string().nullish(),
+  linkedinPost: zod.string().nullish(),
+  twitterPost: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+export const EpisodeDetailSchema = EpisodeSchema.extend({
+  runs: zod.array(EpisodeRunCard),
+});
+
+export const GetEpisodeParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateEpisodeParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DeleteEpisodeParams = zod.object({
+  id: zod.coerce.number(),
 });

@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, desc, sql } from "drizzle-orm";
-import { db, pipelineRunsTable } from "@workspace/db";
+import { db, pipelineRunsTable, episodesTable } from "@workspace/db";
 import {
   CreatePipelineRunBody,
   GetPipelineRunParams,
@@ -41,10 +41,38 @@ router.post("/pipeline/runs", async (req, res): Promise<void> => {
     return;
   }
 
-  const { type, clipType, episodeTranscript, clipTranscript } = parsed.data;
+  const { type, clipType, episodeTranscript: bodyTranscript, clipTranscript, episodeId } = parsed.data;
 
   if (type === "clip" && !clipTranscript) {
     res.status(400).json({ error: "Clip transcript is required for clip runs" });
+    return;
+  }
+
+  let resolvedTranscript = bodyTranscript || "";
+  let resolvedEpisodeId: number | null = episodeId || null;
+
+  if (episodeId) {
+    const [episode] = await db
+      .select()
+      .from(episodesTable)
+      .where(eq(episodesTable.id, episodeId));
+
+    if (!episode) {
+      res.status(404).json({ error: "Episode not found" });
+      return;
+    }
+
+    resolvedTranscript = episode.fullTranscript;
+
+    await db
+      .update(episodesTable)
+      .set({
+        clipCount: episode.clipCount + 1,
+        updatedAt: new Date(),
+      })
+      .where(eq(episodesTable.id, episodeId));
+  } else if (!bodyTranscript) {
+    res.status(400).json({ error: "episodeTranscript is required when episodeId is not provided" });
     return;
   }
 
@@ -52,9 +80,10 @@ router.post("/pipeline/runs", async (req, res): Promise<void> => {
     .insert(pipelineRunsTable)
     .values({
       type,
+      episodeId: resolvedEpisodeId,
       clipType: clipType || null,
       status: "pending",
-      episodeTranscript,
+      episodeTranscript: resolvedTranscript,
       clipTranscript: clipTranscript || null,
     })
     .returning();
@@ -62,6 +91,7 @@ router.post("/pipeline/runs", async (req, res): Promise<void> => {
   res.status(201).json({
     id: run.id,
     type: run.type,
+    episodeId: run.episodeId,
     clipType: run.clipType,
     status: run.status,
     title: run.title,
@@ -87,7 +117,10 @@ router.get("/pipeline/runs/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  res.json(run);
+  res.json({
+    ...run,
+    episodeId: run.episodeId ?? null,
+  });
 });
 
 router.delete("/pipeline/runs/:id", async (req, res): Promise<void> => {

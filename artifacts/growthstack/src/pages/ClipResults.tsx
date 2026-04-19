@@ -847,11 +847,12 @@ export default function ClipResults({ run, runId, isProcessing }: ClipResultsPro
                       <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Title Variations</span>
                       <PlatformBadge color="bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400">YT</PlatformBadge>
                     </div>
-                    <CopyButton text={variations.map(v => `(${v.angle}) ${v.title}`).join("\n")} label="Copy all" />
+                    <CopyButton text={editor.titleVariations} label="Copy all" />
                   </div>
                   <div className="space-y-2">
                     {variations.map((v, i) => (
                       <div key={i} className="flex items-start gap-3 group">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mt-1 w-4 shrink-0 text-right">{i + 1}.</span>
                         <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mt-1 w-16 shrink-0">{v.angle}</span>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-foreground leading-snug">{v.title}</p>

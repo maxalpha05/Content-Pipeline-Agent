@@ -298,7 +298,8 @@ export default function EpisodeWorkspace() {
       if (!reader) throw new Error("No response stream");
 
       let buffer = "";
-      while (true) {
+      let streamComplete = false;
+      while (!streamComplete) {
         const { done, value } = await reader.read();
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
@@ -317,7 +318,10 @@ export default function EpisodeWorkspace() {
               };
               setFullEpisodeStage(stageLabels[data.stage] ?? data.stage);
             }
-            if (data.type === "done" || data.stage === "complete") break;
+            if (data.type === "done" || data.stage === "complete") {
+              streamComplete = true;
+              break;
+            }
           } catch {}
         }
       }

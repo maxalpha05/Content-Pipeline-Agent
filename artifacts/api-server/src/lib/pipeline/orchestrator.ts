@@ -26,12 +26,13 @@ async function callAgent(
   userMessage: string,
   model: string = "claude-sonnet-4-6",
   sendEvent?: SendEvent,
+  maxTokens: number = 4096,
 ): Promise<string> {
   let fullResponse = "";
 
   const stream = anthropic.messages.stream({
     model,
-    max_tokens: 4096,
+    max_tokens: maxTokens,
     system: systemPrompt,
     messages: [{ role: "user", content: userMessage }],
   });
@@ -140,6 +141,7 @@ export async function runEpisodePipeline(
       writerInput,
       "claude-sonnet-4-6",
       sendEvent,
+      16000,
     );
 
     await db
@@ -159,6 +161,7 @@ export async function runEpisodePipeline(
       editorInput,
       "claude-sonnet-4-6",
       sendEvent,
+      16000,
     );
 
     await db

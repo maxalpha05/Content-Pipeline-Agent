@@ -184,25 +184,47 @@ B. LINKEDIN POST (Arnav Bhardwaj's first-person voice)
 3-4 sentences maximum. Written as Arnav sharing something that struck him during the interview — a specific moment, tension, or realization. Frame it around one concrete insight from the episode, not a summary of the whole thing. The framing should feel like a person who was in the room noticing something worth sharing, not a marketer promoting an episode. End with [EPISODE_LINK]. No promotional language, no "excited to share," no hype.
 
 C. YOUTUBE DESCRIPTION (The GrowthStack brand voice, structured)
-150-300 words total. Structure it exactly as follows:
+Follow this exact structure in this exact order. Do not skip or reorder any section.
 
-Line 1-2 (the hook, shown before "Show more"): One or two tight sentences delivering the core tension or insight from the episode. Include the primary search keyword naturally. These lines decide whether someone clicks "Show more" — start with the insight, not the setup.
-
-[blank line]
-
-Body paragraph (3-4 sentences): Expand on the insight. Name the guest and their relevant context in one sentence. Weave in 3-4 additional keywords drawn from the episode themes. Surface what makes this episode specifically useful.
+Paragraph 1 (the hook — visible before "Show more"):
+One sentence, opening with: "In this episode, [Guest Full Name], [one-phrase description of who they are], [strong verb] [the core premise]."
+Choose a verb with weight: dismantles, reframes, challenges, exposes, breaks down, proves. Make the premise specific enough that a reader knows immediately whether this episode is for them. End the sentence after the premise.
 
 [blank line]
 
-Links section:
-Full episode: [EPISODE_LINK]
-Subscribe: [SUBSCRIBE_LINK]
+Paragraph 2 (the episode body — 3-4 sentences):
+Unpack 2-3 of the sharpest tensions or insights from the episode. Be specific — name the actual arguments, not categories. Each sentence should surface something a reader could not predict from the hook alone. No em dashes. No stock phrases.
 
 [blank line]
 
-3 hashtags from the episode's core topics. YouTube displays hashtags above the title — pick the 3 most search-relevant ones.
+Paragraph 3 (optional, only if there is a third strong insight cluster):
+1-2 sentences continuing from paragraph 2. Introduce the guest's most counterintuitive or concrete claim. Include the guest's name once.
 
-Rules: No emojis. No bullet point lists in the body. No em dashes. No stock openers. Prose only in the body paragraph.
+Chapters:
+[Use the exact chapter timestamps from the Analyst's brief. List them exactly as they appear, one per line in the format: MM:SS - Chapter Title]
+
+[blank line]
+
+Connect with [Guest First Name] on LinkedIn: [GUEST_LINKEDIN]
+[If the guest has a book, course, or resource mentioned in the episode, add one line: "[Resource name]: [GUEST_RESOURCE_LINK]". If no resource was mentioned, omit this line.]
+
+[blank line]
+
+YouTube is great, but I want to connect with you!
+
+Connect with me on X: https://x.com/Arnav_ct &
+LinkedIn: https://www.linkedin.com/in/arnavbhardwaj1176/
+
+Why you should follow The GrowthStack:
+Website: thegrowthstack.xyz (for daily and weekly insights into growth)
+X: https://x.com/thegrowthstack_ (we shitpost funny memes here)
+Instagram: https://www.instagram.com/thegrowthstack_xyz/ (bite-sized and more newbie growth content)
+
+[blank line]
+
+[15-25 hashtags drawn from the episode's topics, guest background, industry, frameworks mentioned, and marketing disciplines covered. Mix broad discovery tags with niche-specific ones. No spaces within a hashtag. All on one line separated by spaces.]
+
+Rules: No emojis anywhere. No bullet lists in the body paragraphs. No em dashes. Do not deviate from the section order above. The static sections (Arnav's links and GrowthStack links) must appear verbatim as written above — do not paraphrase or omit them.
 
 D. TITLE VARIATIONS (5 episode title options)
 Produce exactly 5 numbered title variations for this episode, each optimized for a different intent. Draw from the episode's key themes, tensions, and the guest's specific insights.
@@ -394,7 +416,7 @@ Style violations (automatic rewrite, no exceptions):
 Content quality (evaluate and rewrite if failing):
 - Substack Article: Does it sound like AI wrote it? If it reads like a corporate blog or a LinkedIn influencer post, REWRITE to sound like a sharp practitioner writing from notes. Does the opening paragraph start with the problem, not the episode? Does it have the texture of someone who was in the room for the interview? Are the H2 section titles descriptive and specific, not generic topic labels?
 - LinkedIn Post: Is it genuinely first-person from Arnav's perspective — not the GrowthStack brand voice? Does it frame a specific moment or insight from the interview, not a summary of the episode? Does it avoid "excited to share" and promotional language? Does it end with [EPISODE_LINK]? If the post reads like a brand account wrote it, REWRITE in Arnav's personal voice.
-- YouTube Description: Are the first 1-2 lines tight, keyword-rich, and insight-first (not setup or context)? No emojis, no bullet lists in the body paragraph, no em dashes. If the hook lines are weak or generic, REWRITE them. Does it include [EPISODE_LINK] and [SUBSCRIBE_LINK] in the links section? Are exactly 3 hashtags present at the end?
+- YouTube Description: Check the structure in order. (1) Does paragraph 1 open with "In this episode, [Guest Full Name]..." and name a specific, compelling premise? If the hook is generic or doesn't name the guest, REWRITE it. (2) Do paragraphs 2-3 name specific arguments from the episode, not category summaries? If they read like a synopsis rather than a sharpened argument, REWRITE. (3) Is the Chapters section present with the actual episode timestamps in MM:SS - Chapter Title format? If missing, the Writer failed to include it — mark as REVISED and note the omission. (4) Is the guest link line present ("Connect with [Guest] on LinkedIn: [GUEST_LINKEDIN]")? (5) Are the static Arnav personal links section ("YouTube is great, but I want to connect with you!...") and GrowthStack brand section ("Why you should follow The GrowthStack:...") present verbatim? If either static section is paraphrased, altered, or missing, REWRITE to restore them exactly. (6) Are 15-25 hashtags present at the end, all on one line? If fewer than 15 or more than 25, adjust. No emojis, no bullet lists in the body, no em dashes anywhere.
 - Title Variations: Check each of the 5 variations individually. If any uses an em dash, banned phrase, or exceeds 80 characters, REWRITE that variation only. Confirm all 5 angles are present (SEO, AEO, Pain Point, Curiosity, Outcome) and distinct. Each variation must promise exactly what the episode delivers.
 
 For each output, mark one of:

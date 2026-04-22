@@ -20,7 +20,7 @@ interface YouTubeShort {
   likes: number; comments: number; tags: string[]; description: string; thumbnail: string;
 }
 
-interface TranscriptLine { type: "added" | "cut" | "normal"; text: string; }
+interface TranscriptLine { type: "added" | "cut" | "normal"; text: string; note?: string; }
 
 interface SurgeryParsed {
   intrigue: string; value: string; close: string;
@@ -69,13 +69,19 @@ function parseSurgery(text: string | null | undefined): SurgeryParsed {
     const trimmed = line.trim();
     if (!trimmed) continue;
     if (/^WORD COUNT:/i.test(trimmed)) { wordCountLine = trimmed; continue; }
-    if (/^\[ADDED\]/i.test(trimmed)) {
-      transcriptLines.push({ type: "added", text: trimmed.replace(/^\[ADDED\]\s*/i, "") });
-    } else if (/^\[CUT\]/i.test(trimmed)) {
-      transcriptLines.push({ type: "cut", text: trimmed.replace(/^\[CUT\]\s*/i, "") });
-    } else {
-      transcriptLines.push({ type: "normal", text: trimmed });
+    // New format: [ADDED: brief reason] text  OR  legacy: [ADDED] text
+    const addedMatch = trimmed.match(/^\[ADDED(?::\s*([^\]]*))?\]\s*([\s\S]*)/i);
+    if (addedMatch) {
+      transcriptLines.push({ type: "added", text: addedMatch[2].trim(), note: addedMatch[1]?.trim() });
+      continue;
     }
+    // New format: [CUT: brief reason] text  OR  legacy: [CUT] text
+    const cutMatch = trimmed.match(/^\[CUT(?::\s*([^\]]*))?\]\s*([\s\S]*)/i);
+    if (cutMatch) {
+      transcriptLines.push({ type: "cut", text: cutMatch[2].trim(), note: cutMatch[1]?.trim() });
+      continue;
+    }
+    transcriptLines.push({ type: "normal", text: trimmed });
   }
 
   return { intrigue, value, close, transcriptLines, wordCount: wordCountLine };
@@ -273,30 +279,27 @@ function StepCard({
   );
 }
 
-function SurgerySection({ label, content }: { label: string; content: string }) {
-  if (!content) return null;
-  return (
-    <div className="mb-4">
-      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">{label}</p>
-      <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{content}</p>
-    </div>
-  );
-}
 
 function TranscriptLineRow({ line }: { line: TranscriptLine }) {
   if (line.type === "added") {
     return (
-      <div className="flex items-start gap-2 bg-emerald-50 dark:bg-emerald-950/30 border-l-2 border-emerald-400 px-3 py-1.5 rounded-r">
+      <div className="flex items-start gap-2 bg-emerald-50 dark:bg-emerald-950/30 border-l-2 border-emerald-400 px-3 py-2 rounded-r">
         <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase mt-0.5 shrink-0 w-6">ADD</span>
-        <span className="text-sm text-emerald-900 dark:text-emerald-100">{line.text}</span>
+        <div className="flex-1 min-w-0">
+          <span className="text-sm text-emerald-900 dark:text-emerald-100">{line.text}</span>
+          {line.note && <p className="text-[10px] text-emerald-600/70 dark:text-emerald-400/60 mt-0.5">{line.note}</p>}
+        </div>
       </div>
     );
   }
   if (line.type === "cut") {
     return (
-      <div className="flex items-start gap-2 bg-red-50 dark:bg-red-950/30 border-l-2 border-red-400 px-3 py-1.5 rounded-r">
+      <div className="flex items-start gap-2 bg-red-50 dark:bg-red-950/30 border-l-2 border-red-400 px-3 py-2 rounded-r">
         <span className="text-[10px] font-bold text-red-500 uppercase mt-0.5 shrink-0 w-6">CUT</span>
-        <span className="text-sm text-red-700 dark:text-red-400 line-through">{line.text}</span>
+        <div className="flex-1 min-w-0">
+          <span className="text-sm text-red-700 dark:text-red-400 line-through">{line.text}</span>
+          {line.note && <p className="text-[10px] text-red-500/70 mt-0.5">{line.note}</p>}
+        </div>
       </div>
     );
   }
@@ -760,30 +763,12 @@ export default function ClipResults({ run, runId, isProcessing }: ClipResultsPro
     <div className="space-y-2">
 
       {/* ── Step 1: Edit your clip ── */}
-      <StepCard number={1} title="Edit your clip in Riverside" subtitle="What to add, cut, and rearrange">
+      <StepCard number={1} title="Edit your clip in Riverside" subtitle="Revised transcript — green lines to add, red lines to cut">
         <div className="space-y-4">
-          {/* Surgery assessment sections */}
-          {(surgery.intrigue || surgery.value || surgery.close) ? (
-            <Card className="border-border/60 shadow-sm">
-              <CardContent className="p-5 space-y-4">
-                <SurgerySection label="Opening (Intrigue)" content={surgery.intrigue} />
-                {surgery.intrigue && surgery.value && <Separator />}
-                <SurgerySection label="Middle (Value)" content={surgery.value} />
-                {surgery.value && surgery.close && <Separator />}
-                <SurgerySection label="Ending (Close)" content={surgery.close} />
-              </CardContent>
-            </Card>
-          ) : (
-            !run.surgeryOutput && (
-              <p className="text-sm text-muted-foreground italic">Surgery analysis not yet available.</p>
-            )
-          )}
-
-          {/* Revised transcript */}
-          {surgery.transcriptLines.length > 0 && (
+          {/* Revised transcript with inline notes */}
+          {surgery.transcriptLines.length > 0 ? (
             <div>
               <div className="flex items-center justify-between mb-2">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Revised Transcript</p>
                 <CopyButton text={cleanTranscriptForCopy(surgery.transcriptLines)} label="Copy clean version" />
               </div>
               <div className="border border-border/60 rounded-lg overflow-hidden space-y-px bg-muted/10">
@@ -795,10 +780,14 @@ export default function ClipResults({ run, runId, isProcessing }: ClipResultsPro
                 <p className="text-xs text-muted-foreground mt-2 text-right">{surgery.wordCount}</p>
               )}
             </div>
+          ) : (
+            !run.surgeryOutput && (
+              <p className="text-sm text-muted-foreground italic">Surgery analysis not yet available.</p>
+            )
           )}
 
           {/* Fallback: show raw surgery output if parsing found nothing */}
-          {!surgery.intrigue && !surgery.value && !surgery.close && surgery.transcriptLines.length === 0 && run.surgeryOutput && (
+          {surgery.transcriptLines.length === 0 && run.surgeryOutput && (
             <Card className="border-border/60 shadow-sm">
               <CardContent className="p-5">
                 <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{run.surgeryOutput}</p>

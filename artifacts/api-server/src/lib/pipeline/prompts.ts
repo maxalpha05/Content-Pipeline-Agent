@@ -104,7 +104,43 @@ Provide 3-5 direct URLs to thumbnails or visual references with a one-line note 
 15-20 tags total: 5 baseline brand tags (marketing, growth marketing, growth strategy, AI marketing, B2B marketing) plus 10-12 contextual tags derived from the specific clip topic. Weight toward search volume over thematic precision. If a tag is technically accurate but nobody searches for it, replace it with a higher-volume adjacent term.
 
 ## RECOMMENDED HASHTAGS
-5-8 Instagram hashtags. Mix of broad reach hashtags and niche topic hashtags. Pull from what top-performing similar content actually uses, based on your research.`;
+5-8 Instagram hashtags. Mix of broad reach hashtags and niche topic hashtags. Pull from what top-performing similar content actually uses, based on your research.
+
+## CREATIVE CONSTRAINTS
+
+Convert your research findings above into prescriptive, mandatory rules for the Writer. Every constraint must trace directly to observed competitive data — cite the pattern you found (e.g., "4 of 5 top Shorts used imperative verbs in the title"). If you have insufficient data for a specific rule, write exactly: "Insufficient data to constrain. Writer's discretion." Do not leave any subsection blank.
+
+### TITLE CONSTRAINTS
+VERB RULE: [Imperative, declarative, or question — which structure dominated top-performing titles in this topic? State the dominant pattern and why it works here.]
+STAT RULE: [Did top performers include a specific number or stat in the title? State whether to include one, and what type of stat fits this clip's data.]
+LENGTH RULE: [What title length (character count or word count range) dominated top performers? State the target range.]
+FRAMING RULE: [What framing approach dominated — problem-forward, outcome-forward, counterintuitive claim, process reveal? State which to use and why the data supports it.]
+AVOID: [What title patterns appeared in low-performing content or are absent from top performers? List patterns to avoid.]
+
+### HOOK CONSTRAINTS
+PATTERN: [What hook pattern dominated across platforms — question, provocative claim, stat drop, scenario setup? State the dominant pattern with evidence from your research.]
+FIRST WORDS: [What did the best-performing hooks open with — a number, a direct address ("You"), a strong verb, a specific claim? State the recommended first word pattern.]
+
+### TAG CONSTRAINTS
+MUST INCLUDE: [List every tag that appeared in multiple top-performing videos in this topic space. These are non-negotiable — the Writer must include every tag listed here.]
+PAIR WITH: [Tags that commonly appear alongside the MUST INCLUDE tags in top performers. Writer should add these before adding new tags.]
+AVOID: [Tags that are technically accurate but low-volume, or tags that appear in underperforming content.]
+
+### HASHTAG CONSTRAINTS
+MUST INCLUDE: [List every hashtag that appeared in multiple top-performing similar pieces across Instagram or TikTok. Non-negotiable — Writer must include every hashtag listed here.]
+PAIR WITH: [Hashtags that commonly appear alongside the MUST INCLUDE hashtags in top performers.]
+FORMAT RULE: [What hashtag format dominated — broad reach first then niche, or niche-heavy? State the recommended mix ratio.]
+
+[INCLUDE THE FOLLOWING TWO SECTIONS ONLY IF THIS IS A HORIZONTAL CLIP. IF VERTICAL, OMIT THEM ENTIRELY.]
+
+### LINKEDIN POST CONSTRAINTS
+HOOK FORMAT: [What opening structure dominated high-engagement LinkedIn posts in this topic — a personal admission, a bold claim, a short scenario, a counter-narrative? State the recommended format with evidence.]
+LENGTH: [What length (sentence count or approximate word count) did top-performing LinkedIn posts use for similar content? State the target range.]
+CTA PATTERN: [How did top performers close their LinkedIn posts — open question, implicit invitation, direct CTA, none? State what the data supports.]
+
+### TWITTER POST CONSTRAINTS
+FORMAT: [What Twitter format dominated for this topic — hook + one sentence + link, pure hook + link, multi-line with line breaks? State the format the data supports.]
+HASHTAG RULE: [Did top-performing tweets use hashtags or omit them? If they used them, which ones appeared most? State the recommendation.]`;
 
 export const SURGERY_ANALYST_PROMPT = `You are the GrowthStack clip surgery specialist. You receive an episode transcript, a clip transcript, and competitive research findings.
 
@@ -251,6 +287,23 @@ ABSOLUTE STYLE RULES (violating any of these will be caught and rewritten by the
 - Vary sentence length aggressively. Follow a long sentence with a short one. Then a fragment. Then build back up.
 - Write with clarity, commitment, specificity, and strategic imperfection. The writing should sound like a sharp person wrote it quickly but thoughtfully, not like AI generated it.
 
+CREATIVE CONSTRAINTS COMPLIANCE
+
+The Research Analyst has produced a ## CREATIVE CONSTRAINTS block based on what actually works in competitive data. Every constraint in that block is mandatory — not background context, not a suggestion. Treat violations the same way you treat em dash violations: automatic failure.
+
+Before writing any output, read the full ## CREATIVE CONSTRAINTS block in the research. Then apply these rules without exception:
+
+- PRIMARY TITLE: Must comply with every TITLE CONSTRAINT. If the VERB RULE says imperative verbs dominate, the primary title must use an imperative verb. If the STAT RULE says include a stat, include a stat. If the LENGTH RULE gives a character range, hit it. If the FRAMING RULE specifies problem-forward framing, open with the problem.
+- ALL 5 TITLE VARIATIONS: Every variation must also comply with all TITLE CONSTRAINTS. The variations differ in angle (SEO, AEO, Pain point, Curiosity, Outcome) but not in constraint compliance. A variation that violates a TITLE CONSTRAINT is not a valid variation.
+- YOUTUBE TAGS: Begin with every tag listed under MUST INCLUDE in TAG CONSTRAINTS. Do not skip or reorder them. Only after including every MUST INCLUDE tag should you add additional contextual tags. If a MUST INCLUDE tag from the constraints conflicts with the 5 baseline brand tags, include both — the baseline tags and the constraint tags.
+- INSTAGRAM HASHTAGS: Begin with every hashtag listed under MUST INCLUDE in HASHTAG CONSTRAINTS. Do not skip or reorder them. Only after including every MUST INCLUDE hashtag should you add additional ones. Follow the FORMAT RULE for the mix ratio.
+- LINKEDIN POST (horizontal clips only): Follow LINKEDIN POST CONSTRAINTS exactly. If the HOOK FORMAT says bold claim, open with a bold claim. If the LENGTH says 3-4 sentences, stay within that range. If the CTA PATTERN specifies an open question, close with one.
+- TWITTER POST (horizontal clips only): Follow TWITTER POST CONSTRAINTS exactly. Match the specified FORMAT. Follow the HASHTAG RULE.
+
+Before moving to each output, mentally verify it against the constraints. If it fails any constraint, rewrite it before continuing.
+
+OUTPUT STRUCTURE RULE: Creative constraints affect the CONTENT of your outputs, not the STRUCTURE. Keep every section header, label, and output format exactly as specified in the platform-specific instructions below. Do not merge sections, rename headers, reorder outputs, or change how platforms are labeled. The constraints change what you write inside each section. The sections themselves do not change.
+
 PLATFORM-SPECIFIC OUTPUTS:
 
 FOR VERTICAL CLIPS (YouTube Shorts + Instagram Reels):
@@ -333,6 +386,17 @@ Style violations (automatic rewrite, no exceptions):
 - Repetitive parallelism: three or more consecutive sentences with the same structure? VARY the rhythm.
 - Emojis anywhere? REMOVE.
 - Colon-heavy titles? REWRITE.
+
+Creative constraint violations (verify against the CREATIVE CONSTRAINTS FROM RESEARCH section provided in your input):
+- PRIMARY TITLE: Check it against every TITLE CONSTRAINT (VERB RULE, STAT RULE, LENGTH RULE, FRAMING RULE, AVOID). If the primary title violates any constraint, REWRITE it to comply. Note which constraint was violated and what the rewrite addresses.
+- ALL 5 TITLE VARIATIONS: Check each variation individually against every TITLE CONSTRAINT. A variation that violates any TITLE CONSTRAINT must be REWRITTEN. Each rewritten variation must still represent its distinct angle (SEO, AEO, Pain point, Curiosity, Outcome).
+- YOUTUBE TAGS: Verify that every tag listed under MUST INCLUDE in TAG CONSTRAINTS appears in the Writer's tag list. If any MUST INCLUDE tag is missing, ADD it. Do not remove existing tags to make room — add the missing ones.
+- INSTAGRAM HASHTAGS: Verify that every hashtag listed under MUST INCLUDE in HASHTAG CONSTRAINTS appears in the Writer's hashtag list. If any MUST INCLUDE hashtag is missing, ADD it.
+- LINKEDIN POST (horizontal clips only): Verify the post follows LINKEDIN POST CONSTRAINTS (hook format, length range, CTA pattern). If any constraint is violated, REWRITE the post to comply while preserving the core content.
+- TWITTER POST (horizontal clips only): Verify the post follows TWITTER POST CONSTRAINTS (format, hashtag rule). If any constraint is violated, REWRITE the post to comply.
+- If a genuine conflict exists between a constraint and the style rules (e.g., a MUST INCLUDE tag contains a banned phrase), note the conflict explicitly, apply the style rule, and explain the substitution. Do not leave the output non-compliant with style rules in order to satisfy a constraint.
+
+OUTPUT STRUCTURE CHECK: Verify that the Writer preserved all standard section headers and output structure. Every platform output must be in its own clearly labeled section (## TITLE, ## YOUTUBE TAGS, ## INSTAGRAM HASHTAGS, ## LINKEDIN POST, ## TWITTER POST, ## YOUTUBE DESCRIPTION, ## TITLE VARIATIONS, ## MARKETING ANGLE). If the Writer merged, renamed, or reordered any sections, restore the standard structure while keeping the constraint-compliant content.
 
 Content quality (evaluate and rewrite if failing):
 - Does the output sound like AI wrote it? Read it mentally. If it sounds like a LinkedIn influencer or a corporate blog, it fails. REWRITE to sound like a sharp, experienced person writing quickly but thoughtfully.

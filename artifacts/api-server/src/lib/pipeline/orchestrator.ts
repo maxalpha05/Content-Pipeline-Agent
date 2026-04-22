@@ -1,5 +1,5 @@
 import { anthropic } from "@workspace/integrations-anthropic-ai";
-import { db, pipelineRunsTable } from "@workspace/db";
+import { db, pipelineRunsTable, creativeConstraintsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { logger } from "../logger";
 import {
@@ -192,6 +192,22 @@ export async function runEpisodePipeline(
   }
 }
 
+function extractCreativeConstraints(text: string): string {
+  const match = text.match(/## CREATIVE CONSTRAINTS[\s\S]*/i);
+  return match ? match[0].trim() : "";
+}
+
+function parseConstraintField(raw: string, pattern: RegExp): string | null {
+  const match = raw.match(pattern);
+  return match ? match[1].trim() : null;
+}
+
+function extractSection(text: string, heading: string): string | null {
+  const escaped = heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = text.match(new RegExp(`## ${escaped}\\s*\\n([\\s\\S]*?)(?=\\n## |$)`, "i"));
+  return match ? match[1].trim() : null;
+}
+
 export async function runClipPipeline(
   runId: number,
   episodeTranscript: string,
@@ -330,7 +346,8 @@ export async function runClipPipeline(
     // --- STAGE 4: Editor ---
     sendEvent({ type: "stage", stage: "editing", progress: 78 });
 
-    const editorInput = `ANALYST BRIEF:\n${analystOutput}\n\nWRITER OUTPUT:\n${writerOutput}`;
+    const creativeConstraints = extractCreativeConstraints(researchOutput);
+    const editorInput = `CREATIVE CONSTRAINTS FROM RESEARCH:\n${creativeConstraints || "No creative constraints found in research output."}\n\nANALYST BRIEF:\n${analystOutput}\n\nWRITER OUTPUT:\n${writerOutput}`;
     const editorOutput = await callAgent(
       EDITOR_PROMPT,
       editorInput,
@@ -346,6 +363,54 @@ export async function runClipPipeline(
         updatedAt: new Date(),
       })
       .where(eq(pipelineRunsTable.id, runId));
+
+    // --- Write creative constraints record (always, best-effort parsing) ---
+    try {
+      const raw = creativeConstraints || "## CREATIVE CONSTRAINTS\nInsufficient data to constrain. Writer's discretion.";
+      const titleConstraints = raw.match(/### TITLE CONSTRAINTS([\s\S]*?)(?=###|$)/i)?.[1] ?? "";
+      const hookConstraints = raw.match(/### HOOK CONSTRAINTS([\s\S]*?)(?=###|$)/i)?.[1] ?? "";
+      const tagConstraints = raw.match(/### TAG CONSTRAINTS([\s\S]*?)(?=###|$)/i)?.[1] ?? "";
+      const hashtagConstraints = raw.match(/### HASHTAG CONSTRAINTS([\s\S]*?)(?=###|$)/i)?.[1] ?? "";
+      const linkedinConstraints = raw.match(/### LINKEDIN POST CONSTRAINTS([\s\S]*?)(?=###|$)/i)?.[1] ?? "";
+      const twitterConstraints = raw.match(/### TWITTER POST CONSTRAINTS([\s\S]*?)(?=###|$)/i)?.[1] ?? "";
+
+      const [run] = await db
+        .select()
+        .from(pipelineRunsTable)
+        .where(eq(pipelineRunsTable.id, runId));
+
+      await db.insert(creativeConstraintsTable).values({
+        pipelineRunId: runId,
+        episodeId: run?.episodeId ?? null,
+        clipType,
+        topicKeywords: extractTopicKeywords(clipTranscript) || "",
+        topicCluster: null,
+        constraintsRaw: raw,
+        titleVerbRule: parseConstraintField(titleConstraints, /VERB RULE:\s*(.+)/i),
+        titleStatRule: parseConstraintField(titleConstraints, /STAT RULE:\s*(.+)/i),
+        titleLengthRule: parseConstraintField(titleConstraints, /LENGTH RULE:\s*(.+)/i),
+        titleFramingRule: parseConstraintField(titleConstraints, /FRAMING RULE:\s*(.+)/i),
+        titleAvoid: parseConstraintField(titleConstraints, /AVOID:\s*(.+)/i),
+        hookPattern: parseConstraintField(hookConstraints, /PATTERN:\s*(.+)/i),
+        hookFirstWords: parseConstraintField(hookConstraints, /FIRST WORDS:\s*(.+)/i),
+        tagsMustInclude: parseConstraintField(tagConstraints, /MUST INCLUDE:\s*(.+)/i),
+        tagsPairWith: parseConstraintField(tagConstraints, /PAIR WITH:\s*(.+)/i),
+        tagsAvoid: parseConstraintField(tagConstraints, /AVOID:\s*(.+)/i),
+        hashtagsMustInclude: parseConstraintField(hashtagConstraints, /MUST INCLUDE:\s*(.+)/i),
+        hashtagsPairWith: parseConstraintField(hashtagConstraints, /PAIR WITH:\s*(.+)/i),
+        hashtagsFormatRule: parseConstraintField(hashtagConstraints, /FORMAT RULE:\s*(.+)/i),
+        linkedinHookFormat: parseConstraintField(linkedinConstraints, /HOOK FORMAT:\s*(.+)/i),
+        linkedinLength: parseConstraintField(linkedinConstraints, /LENGTH:\s*(.+)/i),
+        linkedinCtaPattern: parseConstraintField(linkedinConstraints, /CTA PATTERN:\s*(.+)/i),
+        twitterFormat: parseConstraintField(twitterConstraints, /FORMAT:\s*(.+)/i),
+        twitterHashtagRule: parseConstraintField(twitterConstraints, /HASHTAG RULE:\s*(.+)/i),
+        finalTitle: extractSection(editorOutput, "TITLE"),
+        finalTags: extractSection(editorOutput, "YOUTUBE TAGS"),
+        finalHashtags: extractSection(editorOutput, "INSTAGRAM HASHTAGS"),
+      });
+    } catch (constraintErr) {
+      logger.error({ constraintErr, runId }, "Failed to write creative constraints record — pipeline continues");
+    }
 
     sendEvent({
       type: "stage",

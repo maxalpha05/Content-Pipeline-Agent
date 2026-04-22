@@ -1,0 +1,53 @@
+Addition 1: Output structure preservation
+Add this to the Writer prompt compliance section, at the very end of the CREATIVE CONSTRAINTS COMPLIANCE block:
+OUTPUT STRUCTURE RULE: Creative constraints affect the CONTENT of your outputs, not the STRUCTURE. Keep every section header, label, and output format exactly as specified in the platform-specific instructions below. Do not merge sections, rename headers, reorder outputs, or change how platforms are labeled. The constraints change what you write inside each section. The sections themselves do not change.
+Also add this to the Editor prompt, at the end of the creative constraint violation checks:
+OUTPUT STRUCTURE CHECK: Verify that the Writer preserved all standard section headers and output structure. Every platform output must be in its own clearly labeled section (## TITLE, ## YOUTUBE TAGS, ## INSTAGRAM HASHTAGS, ## LINKEDIN POST, ## TWITTER POST, ## YOUTUBE DESCRIPTION, ## TITLE VARIATIONS, ## MARKETING ANGLE). If the Writer merged, renamed, or reordered any sections, restore the standard structure while keeping the constraint-compliant content.
+Addition 2: Store creative constraints in the database
+Add a new table called creative_constraints to the database schema:
+{
+  id: serial primary key,
+  pipeline_run_id: integer (FK to pipeline_runs, onDelete cascade),
+  episode_id: integer (nullable FK to episodes, onDelete cascade),
+  created_at: datetime,
+  
+  topic_keywords: text,
+  topic_cluster: text (nullable, for future use),
+  clip_type: text ("vertical" or "horizontal"),
+  
+  // The full constraints block as produced by the Research Analyst
+  constraints_raw: text (the entire ## CREATIVE CONSTRAINTS section, stored as-is),
+  
+  // Individual parsed constraint fields for future querying
+  title_verb_rule: text,
+  title_stat_rule: text,
+  title_length_rule: text,
+  title_framing_rule: text,
+  title_avoid: text,
+  
+  hook_pattern: text,
+  hook_first_words: text,
+  
+  tags_must_include: text,
+  tags_pair_with: text,
+  tags_avoid: text,
+  
+  hashtags_must_include: text,
+  hashtags_pair_with: text,
+  hashtags_format_rule: text,
+  
+  linkedin_hook_format: text (nullable),
+  linkedin_length: text (nullable),
+  linkedin_cta_pattern: text (nullable),
+  
+  twitter_format: text (nullable),
+  twitter_hashtag_rule: text (nullable),
+  
+  // What was actually approved (filled after Editor completes)
+  final_title: text (nullable),
+  final_tags: text (nullable),
+  final_hashtags: text (nullable)
+}
+In the orchestrator's runClipPipeline, after extracting the creative constraints from the Research Analyst output and after the Editor completes, save a record to this table. Parse each constraint subsection into its respective field. Store constraints_raw as the full text block regardless of whether parsing succeeds on individual fields.
+This table is write-only for now. No reads, no UI, no queries against it. It just accumulates data. We will build the retrieval and learning layer later. The table must be in place so we don't lose constraint data from runs happening between now and when we build that layer.
+Add creative_constraints to the schema file alongside the existing tables. Run db:push to apply.

@@ -1,0 +1,133 @@
+The Problem
+The Research Analyst produces excellent competitive data. The Writer reads it as background context and then writes whatever it feels like. The research says "imperative verbs dominate titles" but the Writer produces a descriptive title anyway. The research says "stat in title drives clicks" but the Writer buries the stat in a variation instead of the primary title.
+The Fix
+Add a CREATIVE CONSTRAINTS section to the end of the Research Analyst's output. This section converts descriptive findings into prescriptive rules. Then modify the Writer's prompt to treat these constraints as non-negotiable.
+No new agents. No new API calls. Two prompt modifications.
+Step 1: Add to the Research Analyst prompt
+Find the Research Analyst system prompt in the codebase. At the very end of the prompt, AFTER the ## RECOMMENDED HASHTAGS section, add this entire block:
+## CREATIVE CONSTRAINTS
+
+Based on everything you found in the competitive research above, produce a set of non-negotiable creative constraints for the Writer agent. These are not suggestions. They are rules derived directly from the data.
+
+Format them exactly like this:
+
+### TITLE CONSTRAINTS
+- VERB RULE: [State whether the title must use an imperative verb, a question, a causal chain, or a stat-lead based on which pattern dominated the top performers. Pick ONE dominant pattern and make it mandatory. Example: "Must open with an imperative verb (Fix, Handle, Use, Write, Stop, Steal)"]
+- STAT RULE: [If stat-in-title appeared in top performers, state: "Must include this specific number from the clip: [X]." If stats didn't dominate, state: "Stat optional, specificity required."]
+- LENGTH RULE: [State the exact word count ceiling based on what performed. Example: "Maximum 7 words" or "Maximum 8 words"]
+- FRAMING RULE: [State how the topic should be framed based on what performed. Example: "Frame as a problem to fix NOW, not a concept to learn" or "Frame as a result achieved, not a method explained"]
+- AVOID: [List 2-3 specific title approaches that underperformed or were absent from top results. Example: "Avoid question-format titles. Avoid guest-name-forward titles. Avoid generic topic labels."]
+
+### HOOK CONSTRAINTS (for the first 3 seconds of the clip and the opening of any post)
+- PATTERN: [State the dominant hook pattern from top performers. Example: "Open with a provocative claim or a specific stat. Do not open with context-setting or introductions."]
+- FIRST WORDS: [State what the first 3-5 words must do. Example: "First words must name the reader's pain, not introduce the speaker or topic."]
+
+### TAG CONSTRAINTS
+- MUST INCLUDE: [List 5-8 specific tags that appeared repeatedly across top performers on this topic. These are mandatory.]
+- PAIR WITH: [List 3-4 additional tags that appeared in high-performing content and should be included if relevant.]
+- AVOID: [List any tags that are too generic or too niche based on what you found. Example: "Avoid broad-only tags like #marketing alone. Always pair broad with niche."]
+
+### HASHTAG CONSTRAINTS
+- MUST INCLUDE: [List 3-5 specific hashtags validated by top TikTok/Instagram performers on this topic.]
+- PAIR WITH: [List 2-3 additional hashtags for reach.]
+- FORMAT RULE: [State the broad+niche pairing rule if the data supports it.]
+
+### LINKEDIN POST CONSTRAINTS (only if this is a horizontal clip)
+- HOOK FORMAT: [State the dominant LinkedIn hook format from research. Example: "Open with a specific stat or a personal reaction sentence. Do not summarize the clip." or "Use numbered list format, not prose."]
+- LENGTH: [State the dominant length pattern. Example: "1-2 sentences per paragraph. Heavy white space."]
+- CTA PATTERN: [State what close/CTA pattern performed. Example: "End with an open question that invites comments, not a link drop."]
+
+### TWITTER POST CONSTRAINTS (only if this is a horizontal clip)
+- FORMAT: [State the dominant Twitter format. Example: "Under 25 words before the link. One declarative claim, no thread-style." or "Three-bullet preview format."]
+- HASHTAG RULE: [State whether hashtags helped or hurt on this topic on Twitter. Example: "No hashtags. Specificity of claim drives engagement, not tags." or "One hashtag maximum: #buildinpublic"]
+
+Be ruthlessly specific. Every constraint must trace directly to a pattern you observed in the competitive data. Do not invent constraints that aren't supported by the research. If the data is insufficient to set a constraint for a category, write "Insufficient data to constrain. Writer's discretion." Do not leave any section blank.
+Step 2: Modify the Writer prompt
+Find the Writer system prompt in the codebase. Add this section near the top of the prompt, AFTER the style rules but BEFORE the platform-specific output instructions. Insert it right before the line that starts "PLATFORM-SPECIFIC OUTPUTS:" or "FOR VERTICAL CLIPS":
+CREATIVE CONSTRAINTS COMPLIANCE
+
+You will receive a ## CREATIVE CONSTRAINTS section in the research brief. These constraints are derived from real competitive data showing what actually performs on each platform for this specific topic.
+
+These constraints are NOT suggestions. They are mandatory. Every output you produce must comply with every applicable constraint. Specifically:
+
+- Your PRIMARY title must follow every rule in TITLE CONSTRAINTS. Not one of your variations. The primary title. If the constraint says "must use an imperative verb," your primary title uses an imperative verb. If it says "must include a specific stat," your primary title includes that stat. No exceptions.
+
+- Your title variations should explore DIFFERENT constraint-compliant approaches, not constraint-violating alternatives. If the constraint says "imperative verb required," all five variations use imperative verbs. They differ in angle, not in compliance.
+
+- Your tags must include every tag listed under MUST INCLUDE in TAG CONSTRAINTS before adding any of your own.
+
+- Your hashtags must include every hashtag listed under MUST INCLUDE in HASHTAG CONSTRAINTS before adding any of your own.
+
+- If this is a horizontal clip, your LinkedIn post must follow LINKEDIN POST CONSTRAINTS and your Twitter post must follow TWITTER POST CONSTRAINTS.
+
+- If a constraint says "Writer's discretion" or "Insufficient data," you are free to choose. For everything else, comply first, then be creative within the constraint.
+
+After producing each output, mentally verify it against the constraints. If your title uses a descriptive noun phrase instead of an imperative verb when the constraint requires an imperative verb, rewrite it before moving on.
+Step 3: Modify the Editor prompt
+Find the Editor system prompt in the codebase. Add this to the rejection checklist, AFTER the existing style violation checks but BEFORE the content quality checks:
+Creative constraint violations (check against the CREATIVE CONSTRAINTS from the research brief):
+- Does the primary title comply with every TITLE CONSTRAINT? If the constraint says imperative verb and the title uses a noun phrase, REWRITE using an imperative verb. If the constraint says include a stat and the title omits it, REWRITE with the stat. This is not a style preference. It is a data-backed requirement.
+- Do the tags include every MUST INCLUDE tag from TAG CONSTRAINTS? If any are missing, ADD them.
+- Do the hashtags include every MUST INCLUDE hashtag from HASHTAG CONSTRAINTS? If any are missing, ADD them.
+- Does the LinkedIn post (if applicable) follow the HOOK FORMAT and LENGTH rules from LINKEDIN POST CONSTRAINTS? If not, REWRITE.
+- Does the Twitter post (if applicable) follow the FORMAT and HASHTAG RULE from TWITTER POST CONSTRAINTS? If not, REWRITE.
+- If a constraint-violating output would genuinely be better than a compliant one, note the conflict but still produce the compliant version. The user can override manually. The system defaults to data-backed choices.
+Step 4: Pass constraints to the Editor
+Currently the Editor only receives the Writer's output. It needs to also receive the Creative Constraints so it can verify compliance. Find where the Editor API call is made and update the user message to include the constraints.
+Change the Editor's user message from something like:
+Review the following outputs...
+
+[Writer output]
+To:
+Review the following outputs against both the style checklist AND the creative constraints below.
+
+CREATIVE CONSTRAINTS FROM RESEARCH:
+[extract the ## CREATIVE CONSTRAINTS section from the Research Analyst output and paste it here]
+
+WRITER OUTPUT TO REVIEW:
+[Writer output]
+What this changes in practice
+Before this fix, using the clip from the screenshots as an example:
+Old primary title: "Gong's 3-Part Formula for Higher Email Reply Rates"
+
+Descriptive noun phrase, no imperative verb (research said imperative verbs dominate)
+No stat (research said stat in title drives clicks)
+8 words (research said under 8)
+
+What the new system would produce: Something like "Fix Your Cold Emails With Gong's 34% Reply Formula"
+
+Imperative verb: Fix (constraint-compliant)
+Stat included: 34% (constraint-compliant)
+8 words (borderline, but the constraint would say "maximum 7" based on the research saying "under 8")
+Frames as problem to solve NOW (constraint-compliant)
+
+The variations would explore different imperative verbs and angles while all remaining constraint-compliant:
+
+"Write Sales Emails That Get 34% More Replies"
+"Steal Gong's 3-Step Formula for Cold Email Copy"
+"Stop Writing Cold Emails Without This 34% Stat Framework"
+"Use Pain, Benefit, Stat to Fix Your Outbound Copy"
+
+Every single variation follows the constraints. They differ in angle and emphasis, not in compliance.
+What to test
+
+ Run a clip analysis
+ Check the Research Analyst output: does a ## CREATIVE CONSTRAINTS section appear at the end?
+ Are the constraints specific and traceable to the research? (not generic advice, but data-backed rules)
+ Check each constraint category: TITLE, HOOK, TAG, HASHTAG, and if horizontal LINKEDIN and TWITTER
+ Check the Writer output: does the PRIMARY title comply with every TITLE CONSTRAINT?
+ Check the tags: do they include every MUST INCLUDE tag?
+ Check the hashtags: do they include every MUST INCLUDE hashtag?
+ Check the Editor output: did the Editor verify constraint compliance? Does it mention the constraints in its review?
+ If any output violates a constraint, did the Editor catch and rewrite it?
+ Compare the title quality to previous runs without constraints. Is it more grounded in competitive data?
+
+Troubleshooting
+If the Creative Constraints section is empty or generic:
+The Research Analyst prompt addition may not have been applied. Tell Replit: "Show me the last 50 lines of the Research Analyst system prompt. Does it include the ## CREATIVE CONSTRAINTS section with subsections for TITLE CONSTRAINTS, HOOK CONSTRAINTS, TAG CONSTRAINTS, etc.?"
+If the Writer ignores the constraints:
+The Writer prompt addition may not have been applied, or it may be positioned wrong. Tell Replit: "Show me the Writer system prompt. Does it include a CREATIVE CONSTRAINTS COMPLIANCE section? Is it positioned BEFORE the platform-specific output instructions?"
+If the Editor doesn't check constraints:
+The Editor may not be receiving the constraints in its user message. Tell Replit: "Show me the exact user message being sent to the Editor API call. Does it include a CREATIVE CONSTRAINTS FROM RESEARCH section before the Writer output?"
+If the constraints conflict with style rules:
+The style rules (no em dashes, no "X not Y", no AI phrases) always take precedence. If a constraint says "use a causal chain title" and the Writer interprets that as "If X not Y" format, the style rule wins. The Editor should catch this.

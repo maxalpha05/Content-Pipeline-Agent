@@ -57,12 +57,13 @@ async function callAgentWithSearch(
   userMessage: string,
   model: string = "claude-sonnet-4-6",
   sendEvent?: SendEvent,
+  maxTokens: number = 10000,
 ): Promise<string> {
   let fullResponse = "";
 
   const stream = anthropic.messages.stream({
     model,
-    max_tokens: 4096,
+    max_tokens: maxTokens,
     system: systemPrompt,
     tools: [
       {

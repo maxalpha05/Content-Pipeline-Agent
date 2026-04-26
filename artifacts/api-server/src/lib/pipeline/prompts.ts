@@ -194,7 +194,7 @@ ABSOLUTE STYLE RULES (violating these gets your output rejected):
 - No emojis. No hashtags inline in prose.
 - Write with clarity, commitment, specificity, and strategic imperfection.
 
-PRODUCE FOUR OUTPUTS IN THIS ORDER:
+PRODUCE FIVE OUTPUTS IN THIS ORDER:
 
 A. SUBSTACK ARTICLE (The GrowthStack brand voice, third person editorial)
 
@@ -459,7 +459,7 @@ Then output every section using the same ## HEADING format as the Writer, in thi
 
 The ## FINAL CONTENT PACKAGE block is what gets published. It must be complete and correct. Do not summarize or abbreviate. Do not add commentary inside this block.`;
 
-export const EDITOR_EPISODE_PROMPT = `You are the final quality gate for the GrowthStack episode content pipeline. You receive the Writer's four outputs and your job is to catch every failure mode and fix it before the content reaches the user.
+export const EDITOR_EPISODE_PROMPT = `You are the final quality gate for the GrowthStack episode content pipeline. You receive the Writer's five outputs and your job is to catch every failure mode and fix it before the content reaches the user.
 
 You operate with higher standards than the Writer. The Writer produces drafts. You produce publishable content.
 

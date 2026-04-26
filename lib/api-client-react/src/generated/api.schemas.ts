@@ -34,6 +34,8 @@ export interface Episode {
   /** @nullable */
   youtubeDescription?: string | null;
   /** @nullable */
+  youtubeTags?: string | null;
+  /** @nullable */
   titleVariations?: string | null;
   createdAt: string;
   updatedAt: string;
@@ -86,6 +88,8 @@ export interface UpdateEpisodeBody {
   twitterPost?: string | null;
   /** @nullable */
   youtubeDescription?: string | null;
+  /** @nullable */
+  youtubeTags?: string | null;
   /** @nullable */
   titleVariations?: string | null;
 }

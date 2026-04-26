@@ -368,6 +368,8 @@ components:
           type: ["string", "null"]
         youtubeDescription:
           type: ["string", "null"]
+        youtubeTags:
+          type: ["string", "null"]
         titleVariations:
           type: ["string", "null"]
         createdAt:
@@ -454,6 +456,8 @@ components:
         twitterPost:
           type: ["string", "null"]
         youtubeDescription:
+          type: ["string", "null"]
+        youtubeTags:
           type: ["string", "null"]
         titleVariations:
           type: ["string", "null"]

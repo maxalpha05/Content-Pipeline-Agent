@@ -223,6 +223,7 @@ router.post("/episodes/:id/full-episode", async (req, res): Promise<void> => {
     const parsedArticle = findSection(finalBlock, ["SUBSTACK ARTICLE"]);
     const parsedLinkedin = findSection(finalBlock, ["LINKEDIN POST", "LINKEDIN"]);
     const parsedYoutube = findSection(finalBlock, ["YOUTUBE DESCRIPTION"]);
+    const parsedYoutubeTags = findSection(finalBlock, ["YOUTUBE TAGS"]);
     const parsedTitles = findSection(finalBlock, ["TITLE VARIATIONS"]);
     await db
       .update(episodesTable)
@@ -230,6 +231,7 @@ router.post("/episodes/:id/full-episode", async (req, res): Promise<void> => {
         substackArticle: parsedArticle,
         linkedinPost: parsedLinkedin,
         youtubeDescription: parsedYoutube,
+        youtubeTags: parsedYoutubeTags,
         titleVariations: parsedTitles,
         updatedAt: new Date(),
       })

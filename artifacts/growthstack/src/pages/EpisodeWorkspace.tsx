@@ -329,6 +329,7 @@ export default function EpisodeWorkspace() {
   const substackContent = episode.substackArticle || null;
   const linkedinContent = episode.linkedinPost || null;
   const youtubeContent = episode.youtubeDescription || null;
+  const youtubeTagsContent = episode.youtubeTags || null;
   const titleVariationsContent = episode.titleVariations || null;
 
   return (
@@ -554,6 +555,9 @@ export default function EpisodeWorkspace() {
               )}
               {youtubeContent && (
                 <PlatformCard label="YouTube Description" content={youtubeContent} />
+              )}
+              {youtubeTagsContent && (
+                <PlatformCard label="YouTube Tags" content={youtubeTagsContent} />
               )}
               {titleVariationsContent && (
                 <PlatformCard label="Title Variations" content={titleVariationsContent} />

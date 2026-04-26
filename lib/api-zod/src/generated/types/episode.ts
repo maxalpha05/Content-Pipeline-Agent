@@ -25,6 +25,8 @@ export interface Episode {
   /** @nullable */
   youtubeDescription?: string | null;
   /** @nullable */
+  youtubeTags?: string | null;
+  /** @nullable */
   titleVariations?: string | null;
   createdAt: Date;
   updatedAt: Date;

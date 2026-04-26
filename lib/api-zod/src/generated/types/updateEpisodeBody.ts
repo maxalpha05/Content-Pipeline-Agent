@@ -23,5 +23,7 @@ export interface UpdateEpisodeBody {
   /** @nullable */
   youtubeDescription?: string | null;
   /** @nullable */
+  youtubeTags?: string | null;
+  /** @nullable */
   titleVariations?: string | null;
 }

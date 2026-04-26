@@ -30,6 +30,7 @@ export const ListEpisodesResponseItem = zod.object({
   linkedinPost: zod.string().nullish(),
   twitterPost: zod.string().nullish(),
   youtubeDescription: zod.string().nullish(),
+  youtubeTags: zod.string().nullish(),
   titleVariations: zod.string().nullish(),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
@@ -67,6 +68,7 @@ export const GetEpisodeResponse = zod
     linkedinPost: zod.string().nullish(),
     twitterPost: zod.string().nullish(),
     youtubeDescription: zod.string().nullish(),
+    youtubeTags: zod.string().nullish(),
     titleVariations: zod.string().nullish(),
     createdAt: zod.coerce.date(),
     updatedAt: zod.coerce.date(),
@@ -104,6 +106,7 @@ export const UpdateEpisodeBody = zod.object({
   linkedinPost: zod.string().nullish(),
   twitterPost: zod.string().nullish(),
   youtubeDescription: zod.string().nullish(),
+  youtubeTags: zod.string().nullish(),
   titleVariations: zod.string().nullish(),
 });
 
@@ -119,6 +122,7 @@ export const UpdateEpisodeResponse = zod.object({
   linkedinPost: zod.string().nullish(),
   twitterPost: zod.string().nullish(),
   youtubeDescription: zod.string().nullish(),
+  youtubeTags: zod.string().nullish(),
   titleVariations: zod.string().nullish(),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),

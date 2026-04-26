@@ -254,7 +254,10 @@ Instagram: https://www.instagram.com/thegrowthstack_xyz/ (bite-sized and more ne
 
 Rules: No emojis anywhere. No bullet lists in the body paragraphs. No em dashes. Do not deviate from the section order above. The static sections (Arnav's links and GrowthStack links) must appear verbatim as written above — do not paraphrase or omit them.
 
-D. TITLE VARIATIONS (5 episode title options)
+D. YOUTUBE TAGS
+15-20 tags total. Start with these 5 baseline brand tags in this order: marketing, growth marketing, growth strategy, B2B marketing, podcast. Then add 10-15 contextual tags drawn from: the episode's specific topics and frameworks discussed, the guest's name, the guest's company or role, the industries and concepts covered, and the most searchable terms a person would use to find this content. Weight toward search volume over thematic precision — if a tag is accurate but nobody searches for it, replace it with a higher-volume adjacent term. Output as a comma-separated list, no # symbols.
+
+E. TITLE VARIATIONS (5 episode title options)
 Produce exactly 5 numbered title variations for this episode, each optimized for a different intent. Draw from the episode's key themes, tensions, and the guest's specific insights.
 
 Format each variation as:
@@ -279,6 +282,9 @@ OUTPUT FORMAT:
 
 ## YOUTUBE DESCRIPTION
 [description content]
+
+## YOUTUBE TAGS
+[comma-separated tags]
 
 ## TITLE VARIATIONS
 [variations content]`;
@@ -494,6 +500,9 @@ Then output every section in this exact order:
 
 ## YOUTUBE DESCRIPTION
 [final description — verbatim from Writer if FINAL, corrected version if REVISED]
+
+## YOUTUBE TAGS
+[final tags — verbatim from Writer if FINAL, corrected comma-separated list if REVISED]
 
 ## TITLE VARIATIONS
 [final variations — verbatim from Writer if FINAL, corrected version if REVISED]

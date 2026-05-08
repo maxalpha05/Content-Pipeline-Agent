@@ -170,6 +170,82 @@ function parseResearch(text: string | null | undefined): ResearchParsed {
   };
 }
 
+// ─── Creative constraints parsing ─────────────────────────────────────────────
+
+interface ConstraintRule { label: string; value: string; }
+interface ConstraintSection {
+  heading: string;     // short heading e.g. "TITLE"
+  fullHeading: string; // raw heading e.g. "TITLE CONSTRAINTS"
+  rules: ConstraintRule[];
+}
+
+function extractConstraintsBlock(researchOutput: string | null | undefined): string {
+  const t = researchOutput || "";
+  const m = t.match(/^[ \t]*##\s+CREATIVE\s+CONSTRAINTS\b.*$/im);
+  if (!m || m.index == null) return "";
+  const after = t.slice(m.index + m[0].length);
+  // End at the next level-2 heading
+  const end = after.search(/^[ \t]*##(?!#)\s+/m);
+  return (end === -1 ? after : after.slice(0, end)).trim();
+}
+
+function parseConstraintRules(body: string): ConstraintRule[] {
+  const rules: ConstraintRule[] = [];
+  const lines = body.split("\n");
+  let current: ConstraintRule | null = null;
+  // Allow uppercase letters/digits/spaces/slashes, 1-5 words, ending with ":"
+  const labelRe = /^([A-Z][A-Z0-9 /]{1,40}):\s*(.*)$/;
+  for (const raw of lines) {
+    // Strip markdown bold so "**VERB RULE:** ..." parses too
+    const stripped = raw.replace(/\*\*/g, "").trim();
+    if (!stripped) continue;
+    const lm = stripped.match(labelRe);
+    if (lm) {
+      if (current) rules.push(current);
+      current = { label: lm[1].trim(), value: lm[2].trim() };
+    } else if (current) {
+      current.value += (current.value ? " " : "") + stripped;
+    }
+  }
+  if (current) rules.push(current);
+  // Trim placeholder brackets the model may leave in a value, e.g. "[Imperative...]"
+  return rules.map((r) => ({
+    label: r.label,
+    value: r.value.replace(/^\[|\]$/g, "").trim(),
+  }));
+}
+
+function parseConstraintSections(researchOutput: string | null | undefined): ConstraintSection[] {
+  const block = extractConstraintsBlock(researchOutput);
+  if (!block) return [];
+  const sections: ConstraintSection[] = [];
+  const re = /^[ \t]*###\s+(.+?)\s*$/gm;
+  const matches: { heading: string; index: number; len: number }[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(block)) !== null) {
+    matches.push({ heading: m[1].trim(), index: m.index, len: m[0].length });
+  }
+  for (let i = 0; i < matches.length; i++) {
+    const start = matches[i].index + matches[i].len;
+    const end = i + 1 < matches.length ? matches[i + 1].index : block.length;
+    const body = block.slice(start, end).trim();
+    const fullHeading = matches[i].heading;
+    const stripped = fullHeading
+      .replace(/\s*CONSTRAINTS\s*$/i, "")
+      .replace(/\s*POST\s*$/i, "")
+      .trim()
+      .toUpperCase();
+    // Normalise to the labels used in the task spec (TAGS / HASHTAGS).
+    const heading =
+      stripped === "TAG" ? "TAGS" :
+      stripped === "HASHTAG" ? "HASHTAGS" :
+      stripped;
+    const rules = parseConstraintRules(body);
+    if (rules.length > 0) sections.push({ heading, fullHeading, rules });
+  }
+  return sections;
+}
+
 function youtubeThumbnailFromUrl(url: string): string | null {
   const patterns = [
     /youtube\.com\/(?:watch\?v=|shorts\/)([A-Za-z0-9_-]{11})/,
@@ -625,6 +701,52 @@ function PatternRow({ label, body }: PatternEntry) {
   );
 }
 
+// ─── Creative constraints card ───────────────────────────────────────────────
+
+const CONSTRAINT_HEADING_COLORS: Record<string, string> = {
+  TITLE:    "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300",
+  HOOK:     "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
+  TAGS:     "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300",
+  HASHTAGS: "bg-pink-100 text-pink-800 dark:bg-pink-900/40 dark:text-pink-300",
+  LINKEDIN: "bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300",
+  TWITTER:  "bg-slate-200 text-slate-800 dark:bg-slate-700 dark:text-slate-200",
+};
+
+function constraintHeadingColor(heading: string): string {
+  const key = heading.toUpperCase().split(/\s+/)[0];
+  return CONSTRAINT_HEADING_COLORS[key] || "bg-muted text-muted-foreground";
+}
+
+function ConstraintCard({ section }: { section: ConstraintSection }) {
+  const color = constraintHeadingColor(section.heading);
+  return (
+    <Card className="border-border/60 shadow-sm">
+      <CardContent className="p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${color}`}>
+            {section.heading}
+          </span>
+          <span className="text-xs text-muted-foreground">
+            {section.rules.length} {section.rules.length === 1 ? "rule" : "rules"}
+          </span>
+        </div>
+        <dl className="space-y-2">
+          {section.rules.map((r, i) => (
+            <div key={i} className="grid grid-cols-[7rem_1fr] gap-x-3 gap-y-0.5 items-baseline">
+              <dt className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                {r.label}
+              </dt>
+              <dd className="text-sm text-foreground leading-relaxed">
+                {r.value || <span className="italic text-muted-foreground">No detail captured.</span>}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </CardContent>
+    </Card>
+  );
+}
+
 // ─── Competitive platform accordion ──────────────────────────────────────────
 
 function CompetitivePlatform({
@@ -708,6 +830,15 @@ export default function ClipResults({ run, runId, isProcessing }: ClipResultsPro
   const editor   = parseEditor(run.editorOutput, run.writerOutput);
   const research = parseResearch(run.researchOutput);
   const thumbnailRefs = parseThumbnailRefs(research.thumbnails);
+  const constraintSections = parseConstraintSections(run.researchOutput);
+
+  // Dynamic step numbering — Steps 1 & 2 are always present, others are optional
+  let collapsibleStep = 2; // 1=edit, 2=copy/publish
+  const designerStepNum = thumbnailRefs.length > 0 ? ++collapsibleStep : null;
+  const intelStepNum = ++collapsibleStep;
+  const constraintsStepNum = constraintSections.length > 0 ? ++collapsibleStep : null;
+  const hasMarketingAngle = !!(editor.marketingAngle || run.editorOutput);
+  const marketingStepNum = hasMarketingAngle ? ++collapsibleStep : null;
 
   const youtubeShorts: YouTubeShort[] | null = (() => {
     try { return run.youtubeData ? JSON.parse(run.youtubeData) : null; }
@@ -936,8 +1067,8 @@ export default function ClipResults({ run, runId, isProcessing }: ClipResultsPro
       </StepCard>
 
       {/* ── Step 3: Send to designer ── */}
-      {thumbnailRefs.length > 0 && (
-        <StepCard number={3} title="Send to your designer" subtitle="Thumbnail and visual references">
+      {thumbnailRefs.length > 0 && designerStepNum != null && (
+        <StepCard number={designerStepNum} title="Send to your designer" subtitle="Thumbnail and visual references">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {thumbnailRefs.map((ref, i) => (
               <ThumbnailRefCard key={i} item={ref} index={i} />
@@ -949,9 +1080,9 @@ export default function ClipResults({ run, runId, isProcessing }: ClipResultsPro
       {/* Spacer before collapsibles */}
       <div className="pb-2" />
 
-      {/* ── Step 4: Competitive intel (collapsible) ── */}
+      {/* ── Step: Competitive intel (collapsible) ── */}
       <CollapsibleSection
-        number={thumbnailRefs.length > 0 ? 4 : 3}
+        number={intelStepNum}
         title="Competitive intel"
         subtitle="What's performing on each platform for this topic"
       >
@@ -994,10 +1125,25 @@ export default function ClipResults({ run, runId, isProcessing }: ClipResultsPro
         </div>
       </CollapsibleSection>
 
-      {/* ── Step 5: Marketing angle (collapsible) ── */}
-      {(editor.marketingAngle || run.editorOutput) && (
+      {/* ── Step: Creative constraints (collapsible) ── */}
+      {constraintSections.length > 0 && constraintsStepNum != null && (
         <CollapsibleSection
-          number={thumbnailRefs.length > 0 ? 5 : 4}
+          number={constraintsStepNum}
+          title="Creative constraints"
+          subtitle="Rules competitive data set for this clip's content"
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {constraintSections.map((s) => (
+              <ConstraintCard key={s.fullHeading} section={s} />
+            ))}
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {/* ── Step: Marketing angle (collapsible) ── */}
+      {hasMarketingAngle && marketingStepNum != null && (
+        <CollapsibleSection
+          number={marketingStepNum}
           title="Marketing angle"
           subtitle="Strategic positioning for this clip"
         >

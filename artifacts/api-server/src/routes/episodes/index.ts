@@ -5,6 +5,7 @@ import { db, episodesTable, pipelineRunsTable } from "@workspace/db";
 import { runEpisodePipeline } from "../../lib/pipeline/orchestrator";
 import { CLIP_DISCOVERY_PROMPT } from "../../lib/pipeline/prompts";
 import { getHistoricalContext } from "../../lib/competitive-intel/historical-context";
+import { extractTopicKeywords } from "../../lib/pipeline/youtube";
 
 const SECTION_LABELS = [
   "SUBSTACK ARTICLE",
@@ -263,10 +264,15 @@ router.post("/episodes/:id/discover-clips", async (req, res): Promise<void> => {
 
   let historicalContext = "";
   try {
-    // Pull whatever historical context is available across both clip orientations.
-    // Discovery runs episode-level, so it doesn't know clipType yet — use the larger pool.
-    const verticalCtx = await getHistoricalContext("", "vertical");
-    const horizontalCtx = await getHistoricalContext("", "horizontal");
+    // Discovery is episode-level (clipType unknown), so derive topic keywords from the
+    // full transcript and pull historical context across both orientations, preferring
+    // whichever pool yields a usable block.
+    const episodeKeywords = extractTopicKeywords(episode.fullTranscript);
+    const verticalCtx = await getHistoricalContext(episodeKeywords, "vertical");
+    const horizontalCtx = await getHistoricalContext(
+      episodeKeywords,
+      "horizontal",
+    );
     historicalContext = verticalCtx || horizontalCtx || "";
   } catch (err) {
     req.log.warn({ err }, "[discover-clips] historical-context query failed");

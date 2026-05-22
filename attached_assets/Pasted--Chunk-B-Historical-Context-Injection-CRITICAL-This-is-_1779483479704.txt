@@ -1,0 +1,192 @@
+# Chunk B: Historical Context Injection
+
+## CRITICAL: This is a feature addition. Do NOT modify any existing pipeline logic, results UI, episode workspace, or revision flows. The only changes are: (1) a query function that reads from the competitive_intelligence table, (2) additional context prepended to the Research Analyst's user message, and (3) a small addition to the Research Analyst's system prompt.
+
+## Prerequisites
+
+Chunk A must be fully working with at least 3-5 saved records in the competitive_intelligence table. If the table is empty, this chunk has nothing to query and the historical context will be empty (which is fine, it gracefully degrades).
+
+## What we're building
+
+Before the Research Analyst runs on a clip, the system queries the competitive_intelligence table for previous runs in related topic areas. It formats the stored competitor data (real YouTube Shorts, tags, view counts, patterns) into a historical context block and prepends it to the Research Analyst's input. The Analyst then has both accumulated competitor intelligence AND fresh search results.
+
+The key principle: historical context comes from competitor data (objective, ground truth), not from the system's own recommended outputs (drafts that may have been edited or ignored). The only user-generated signal included is the userSelectedTitle field (which title the user copied), and only when user_approved is explicitly true.
+
+## Step 1: Build the historical context query function
+
+Add this function to the orchestrator or a shared utility file:
+
+```
+async function getHistoricalContext(topicKeywords, clipType) {
+  // Step 1: Query competitive_intelligence for relevant records
+  // Filter: sufficientData = true AND dataQualityScore >= 5
+  // Sort: dataQualityScore DESC, then createdAt DESC
+  // Limit: 10 records maximum
+
+  // Step 2: Score each record for relevance to current topic
+  // Compare topicKeywords word overlap:
+  //   - Split both current keywords and stored keywords into words
+  //   - Count matching words (case-insensitive)
+  //   - Score = matching word count * 2
+  // Compare topicCluster string match:
+  //   - If stored topicCluster contains any current keyword, add 3 points
+  //   - If stored topicCluster exactly matches estimated current cluster, add 5 points
+  // Filter out records with relevance score below 3
+  // Re-sort by relevance score DESC, then dataQualityScore DESC
+
+  // Step 3: Take top 8 most relevant records
+
+  // Step 4: Aggregate and format
+
+  // Return the formatted context block (see Step 2 below)
+  // If zero relevant records found, return empty string
+}
+```
+
+## Step 2: Format the historical context block
+
+The function should return a text block formatted exactly like this. Every data point must come from the competitive_intelligence table, never fabricated.
+
+```
+HISTORICAL COMPETITIVE INTELLIGENCE
+====================================
+Based on [X] previous clip analyses in the "[topicCluster]" topic area.
+Data range: [earliest createdAt] to [most recent createdAt].
+
+YOUTUBE SHORTS PERFORMANCE IN THIS SPACE:
+- Total unique Shorts analyzed across [X] runs: [count of all shorts across all youtubeShorts arrays]
+- Average top-Short view count per run: [average of youtubeTopViews across matching records]K
+- Highest-performing Short ever seen: "[title]" ([views]K views) — [url]
+- View count trend: [if 3+ records exist, note whether youtubeTopViews is trending up, down, or stable across runs by date]
+
+TOP-PERFORMING COMPETITOR TAGS (by frequency across [X] runs):
+[Parse all youtubeShorts arrays, extract all tags, count frequency across ALL records]
+1. [tag] — appeared in [X] of [Y] runs
+2. [tag] — appeared in [X] of [Y] runs
+... (top 15 tags by frequency)
+
+TOP-PERFORMING COMPETITOR TITLES BY VIEW COUNT:
+[Parse all youtubeShorts arrays, collect all titles with views, sort by views DESC]
+1. "[title]" — [views]K views
+2. "[title]" — [views]K views
+... (top 8)
+
+TITLES USER PREVIOUSLY SELECTED (copied from output):
+[Only include records where userSelectedTitle is not null]
+- "[userSelectedTitle]" ([createdAt date])
+... (all available, or "No title selections recorded yet" if none)
+
+RECURRING CROSS-PLATFORM PATTERNS:
+[Take the crossPlatformPatterns field from the 3 most recent matching records. Present the most recent one in full. For the other 2, note only if they differ significantly from the most recent.]
+
+CREATIVE CONSTRAINT PATTERNS THAT HAVE BEEN SET:
+[Parse constraintsRaw from the 3 most recent matching records. Identify which constraint rules appear repeatedly:]
+- Title verb rule: [most commonly set verb rule across runs, e.g., "imperative verb required in 4 of 5 runs"]
+- Title stat rule: [most common stat rule]
+- Most frequently mandated tags: [tags that appeared in MUST INCLUDE across multiple runs]
+```
+
+If there are fewer than 3 matching records, include whatever is available and add: "Limited historical data ([X] runs). Patterns may not be reliable yet."
+
+If there are zero matching records, return an empty string. Do not include the header block at all.
+
+## Step 3: Inject historical context into the Research Analyst call
+
+Find where the Research Analyst API call is made in `runClipPipeline`. Before the call, run the historical context query:
+
+```
+var historicalContext = await getHistoricalContext(topicKeywords, clipType);
+```
+
+Then modify the user message sent to the Research Analyst. Currently it looks something like:
+
+```
+CLIP TRANSCRIPT:
+[clip transcript]
+
+YOUTUBE DATA (real API data):
+[formatted YouTube data]
+
+Analyze the YouTube data directly. Then search Instagram, TikTok, LinkedIn, and Twitter...
+```
+
+Change it to:
+
+```
+[historicalContext — only if non-empty, otherwise omit entirely]
+
+CLIP TRANSCRIPT:
+[clip transcript]
+
+YOUTUBE DATA (real API data with actual view counts and tags):
+[formatted YouTube data]
+
+Analyze the YouTube data directly. Then search Instagram, TikTok, LinkedIn, and Twitter using site: operators. [If historicalContext was included, add: "Compare fresh results against the historical competitive intelligence above. Note trends, shifts, and any new patterns."]
+```
+
+Historical context goes FIRST so the Analyst reads it before the fresh data.
+
+Do NOT modify the Research Analyst system prompt in any way that affects its existing behavior. Only ADD the following section at the very end, after the ## CREATIVE CONSTRAINTS section:
+
+```
+## HISTORICAL CONTEXT INTEGRATION
+
+You may receive a HISTORICAL COMPETITIVE INTELLIGENCE block at the start of the user message. This contains real competitor data from previous clip analyses in the same topic area. All data points are from the YouTube Data API, web searches, and user behavior — they are ground truth, not generated opinions.
+
+When historical data is present:
+- Compare fresh YouTube API results against historical view counts. Note if average performance is trending up or down for this topic.
+- Compare tags on fresh top-performing Shorts against historically top-performing tags. Note new tags appearing or established ones disappearing.
+- When setting CREATIVE CONSTRAINTS, weight toward patterns validated across multiple runs. A title structure that appeared in top performers across 4 previous runs is a stronger signal than one that appeared in 1 run.
+- When recommending tags in ## RECOMMENDED TAGS, prioritize tags that appear in BOTH historical top performers AND fresh results.
+- Reference any titles the user previously selected to maintain angle consistency while still evolving.
+- In ## Cross-Platform Patterns, note what has changed since previous analyses if the data supports it.
+
+When NO historical data is present, proceed normally with fresh research only. Do not mention the absence of historical data.
+
+Historical data supplements fresh research. It never replaces it. Always run fresh searches regardless of how much historical data exists.
+```
+
+## What NOT to change
+
+- Do not modify any existing prompts beyond adding the HISTORICAL CONTEXT INTEGRATION section at the end of the Research Analyst prompt
+- Do not modify the Writer prompt
+- Do not modify the Editor prompt
+- Do not modify the Surgery Analyst prompt
+- Do not modify the pipeline call sequence (Research → Surgery → Writer → Editor)
+- Do not modify the results UI
+- Do not modify the episode workspace
+- Do not add any UI for viewing historical data
+- If historicalContext is empty (no matching records), the pipeline must work exactly as it does today
+
+## What to test
+
+### Test 1: Run with no historical data
+- [ ] Clear or start with an empty competitive_intelligence table
+- [ ] Run a clip analysis
+- [ ] The Research Analyst should produce output identical to before (no historical references)
+- [ ] No errors related to empty historical context
+- [ ] After the run, Chunk A should save the data (verify the record exists)
+
+### Test 2: Run with historical data present
+- [ ] Ensure at least 3 records exist in competitive_intelligence with dataQualityScore >= 5 and sufficientData = true, all in a similar topic area
+- [ ] Run a clip analysis on a similar topic
+- [ ] Check the Research Analyst output for historical references:
+  - [ ] Does it mention "previous analyses" or "historically" or "trending"?
+  - [ ] Does it compare fresh YouTube view counts to historical averages?
+  - [ ] Does it note any tag trends (new tags, disappearing tags)?
+  - [ ] Are the CREATIVE CONSTRAINTS informed by historical patterns (e.g., "imperative verbs have dominated in 4 of 5 previous runs")?
+
+### Test 3: Run with unrelated topic
+- [ ] Run a clip on a completely different topic from the stored records
+- [ ] Historical context should either be empty or very thin (low relevance scores)
+- [ ] The Research Analyst should NOT reference historical data from unrelated topics
+
+### Test 4: Data quality filtering
+- [ ] If you have any records with dataQualityScore < 5, verify they are NOT included in the historical context
+- [ ] If you have records with sufficientData = false, verify they are NOT included
+
+### Test 5: Existing pipeline unchanged
+- [ ] Run a full episode pipeline (not a clip). Verify it works exactly as before with zero changes.
+- [ ] Run a clip pipeline and verify the Surgery Analyst, Writer, and Editor outputs are structured the same as before.
+- [ ] Verify the results UI displays everything correctly.
+- [ ] Verify the revision/feedback flow still works.

@@ -1,0 +1,254 @@
+# Chunk C: Clip Discovery Agent
+
+## CRITICAL: This is a feature addition. Do NOT modify any existing pipeline logic, prompts, results UI, episode workspace layout, or revision flows. The Clip Discovery agent is an entirely new capability that runs SEPARATELY from the existing clip pipeline. It adds: (1) a new prompt, (2) a new API route, (3) a new button and display section in the Episode Workspace, and (4) a query against the competitive_intelligence table for historical context.
+
+## Prerequisites
+
+- Chunk 0 (episode structure) must be working — episodes and clip_runs tables exist, Episode Workspace page exists
+- Chunk A (competitive intelligence storage) should be working — the competitive_intelligence table exists. If it's empty, Clip Discovery still works but without historical weighting.
+
+## What we're building
+
+A "Discover Clips" button in the Episode Workspace that scans the full episode transcript and returns 4-6 recommended clip moments. Each recommendation includes the exact transcript lines, a description of the insight, which checkpoints (hook/value/close) are naturally strong, and whether it works better as vertical or horizontal. The user can then select any recommendation to run it through the existing clip pipeline with the transcript pre-filled.
+
+## Step 1: Add the Clip Discovery prompt
+
+Add this as a new constant in prompts.ts (do NOT modify any existing prompts):
+
+```
+CLIP_DISCOVERY_PROMPT = `You are the GrowthStack Clip Discovery agent. You scan full podcast episode transcripts to identify the 4-6 strongest clip-worthy moments.
+
+A clip-worthy moment is a self-contained segment of conversation where:
+1. A clear HOOK exists naturally — someone says something provocative, surprising, counterintuitive, or specific enough to stop a scroll. A question that creates a knowledge gap. A stat that demands attention. A claim that challenges assumptions.
+2. A complete INSIGHT follows within 150-200 words of spoken content — the thought starts, develops, and resolves without depending on context from 10 minutes earlier that a clip viewer wouldn't have.
+3. A natural CLOSE exists nearby — the speaker lands on a memorable line, a practical takeaway, a punchy conclusion, or a clear stopping point. The moment doesn't just fade into the next topic.
+
+You may receive HISTORICAL COMPETITIVE INTELLIGENCE at the start of the user message. If present, use it to weight your selections:
+- If stat-in-hook clips historically get higher views in this topic space, prioritize moments where the guest drops a specific number.
+- If counterintuitive claims dominate top performers, prioritize moments of disagreement or surprising takes.
+- If certain title structures consistently win, favor moments that naturally lend themselves to those structures.
+- If certain tags are validated across multiple runs, favor moments whose topics align with those tag clusters.
+Historical data informs which moments to prioritize, but every recommendation must still satisfy all three checkpoints (hook, insight, close) on its own merit.
+
+When NO historical data is present, select based purely on the three checkpoints.
+
+SELECTION RULES:
+- Identify exactly 4-6 moments. No fewer than 4, no more than 6.
+- Each moment must be from a DIFFERENT part of the episode. Do not cluster multiple clips from the same 2-minute stretch.
+- Each moment must be self-contained. A viewer with zero context about the episode should understand the clip.
+- Prioritize moments with concrete specifics (named companies, real numbers, actual examples) over abstract commentary.
+- Prioritize moments with natural tension (disagreement, surprise, counterintuitive claims) over explanatory segments.
+- Prioritize moments where the guest says something the host reacts to over monologue stretches.
+- Each clip must be achievable in 150-200 words of spoken content (60-80 seconds). If a moment needs 300 words to land, it's not a clip, it's a segment. Skip it.
+
+OUTPUT FORMAT:
+
+For each recommended clip, output:
+
+## CLIP [number]: [one-line insight description]
+
+**Lines:** [start line number] to [end line number]
+**Estimated duration:** [word count] words (~[seconds] seconds)
+**Clip type:** [VERTICAL or HORIZONTAL with reasoning]
+  - VERTICAL (under 60 sec, single tight insight, strong standalone hook) for YouTube Shorts, Instagram Reels, TikTok
+  - HORIZONTAL (60-180 sec, needs interview dynamic or extended context, conversational back-and-forth adds value) for LinkedIn, YouTube main channel
+
+**Hook assessment:**
+[Is there a natural hook in the opening lines? Quote the specific line. Rate: STRONG / NEEDS WORK]
+
+**Value assessment:**
+[What is the specific insight delivered? Is it clear and complete? Rate: STRONG / NEEDS WORK]
+
+**Close assessment:**
+[Does it end naturally? Quote the closing line. Rate: STRONG / NEEDS WORK]
+
+**Surgery notes:**
+[Any specific edits you'd recommend — lines to cut, lines to add from before/after in the transcript. Keep brief. The full Surgery Analyst handles this in detail later.]
+
+**Topic keywords:** [3-5 specific keywords for this clip's topic, used for competitive research]
+
+**Transcript segment:**
+\`\`\`
+[The exact transcript lines from start to end, verbatim, with line numbers. Do not paraphrase or summarize. Copy word-for-word.]
+\`\`\`
+
+---
+
+After all clips, output:
+
+## DISCOVERY SUMMARY
+- Total clips found: [number]
+- Strongest overall: Clip [number] — [one-line reason]
+- Most likely to perform on YouTube Shorts: Clip [number] — [one-line reason]
+- Most likely to perform on LinkedIn: Clip [number] — [one-line reason]
+- Topic clusters covered: [list of distinct topic areas across all clips]
+
+IMPORTANT: Every transcript line must be copied EXACTLY as it appears in the source transcript. Do not clean up grammar, remove filler words, or fix speech patterns. The user needs verbatim text to locate these segments in their video editor.`
+```
+
+## Step 2: Add the Clip Discovery API route
+
+Add a new route:
+
+```
+POST /api/episodes/:id/discover-clips
+```
+
+This route:
+
+1. Loads the episode's full_transcript from the database
+2. Queries the competitive_intelligence table for historical context:
+   - Use the same getHistoricalContext function from Chunk B if it exists
+   - If Chunk B is not yet built, use this simplified version:
+     Query competitive_intelligence WHERE sufficientData = true AND dataQualityScore >= 5, sorted by dataQualityScore DESC, limit 10. Format the YouTube top-performing titles and tags as a simple context block. (The full getHistoricalContext can replace this later.)
+   - Pass empty string if no records exist
+3. Calls the Claude API with:
+   - System: CLIP_DISCOVERY_PROMPT
+   - User message: [historicalContext if non-empty] + "FULL EPISODE TRANSCRIPT:\n" + full_transcript + "\n\nScan this transcript and identify the 4-6 strongest clip-worthy moments."
+   - max_tokens: 4096
+   - NO web search (discovery doesn't need fresh competitive data, it uses stored data and transcript analysis)
+4. Returns the response text
+
+The route should also save the discovery results to the episode record. Add a nullable text field `discoveryOutput` to the episodes table. Store the full discovery response there so it persists and doesn't need to be re-run.
+
+## Step 3: Add UI to the Episode Workspace
+
+In the Episode Workspace page, add a new section. This section should appear ABOVE the "Run New Clip Analysis" section but BELOW the top bar. It should NOT replace or modify any existing sections.
+
+### When no discovery has been run yet:
+
+Show a card:
+```
+┌─────────────────────────────────────────────┐
+│  🔍 Discover Clips                          │
+│                                             │
+│  Scan the full transcript to find the 4-6   │
+│  strongest clip-worthy moments.             │
+│                                             │
+│  [Discover Clips]  button                   │
+└─────────────────────────────────────────────┘
+```
+
+### While discovery is running:
+
+Show a loading state with a message: "Scanning transcript for clip-worthy moments..." with a spinner.
+
+### After discovery completes (or if discoveryOutput already exists on the episode):
+
+Show the discovery results as a list of clip cards. Parse the discovery output to extract each ## CLIP section. For each clip:
+
+```
+┌─────────────────────────────────────────────────────┐
+│  Clip 1: Gong's email formula hits 34% higher       │
+│                                                     │
+│  Lines 142-178 | ~180 words (~72 sec) | VERTICAL    │
+│                                                     │
+│  Hook: STRONG  |  Value: STRONG  |  Close: NEEDS WORK │
+│                                                     │
+│  "Increase reply rates with an AI powered sales     │
+│   engagement solution. So immediately you know..."   │
+│  (first 2 lines of transcript preview)              │
+│                                                     │
+│  [Analyze This Clip]  [View Full Segment]           │
+└─────────────────────────────────────────────────────┘
+```
+
+**"Analyze This Clip" button:** Pre-fills the clip analysis form in Section A below with:
+- clipType: set to the recommended type (vertical or horizontal)
+- clipTranscript: set to the full transcript segment from the discovery output
+
+The user then just clicks "Run Analysis" and the existing pipeline takes over. They can also modify the transcript selection before running if they want to adjust the boundaries.
+
+**"View Full Segment" button:** Expands the card to show the full verbatim transcript segment and the surgery notes.
+
+**"Re-discover" button** (small, secondary, at the top of the discovery section): Clears the stored discoveryOutput and runs discovery again. Useful if you've already processed several clips and want to find more, or if the episode transcript was edited.
+
+### Discovery summary:
+
+At the bottom of the clip cards, show the DISCOVERY SUMMARY section:
+- Strongest overall clip highlighted
+- Best for YouTube Shorts highlighted
+- Best for LinkedIn highlighted
+- Topic clusters listed
+
+## Step 4: Connect discovery to the existing clip pipeline
+
+When the user clicks "Analyze This Clip" on a discovery card:
+1. Set the clip orientation toggle to the recommended type
+2. Fill the clip transcript textarea with the exact transcript segment
+3. Scroll down to the clip analysis input form
+4. The user reviews and clicks "Run Analysis" as normal
+
+The existing pipeline (Research → Surgery → Writer → Editor) runs unchanged. The clip transcript just arrives pre-filled instead of manually pasted.
+
+Do NOT auto-run the pipeline. The user must still click "Run Analysis" to start it. This gives them the chance to adjust the transcript boundaries or change the clip type.
+
+## Step 5: Store topic keywords from discovery for future runs
+
+When a user clicks "Analyze This Clip" on a discovery card, pass the topic keywords from the discovery output into the clip pipeline's topic keyword extraction. This skips the automatic keyword extraction and uses the Discovery agent's keywords instead, which are likely more accurate since they were derived from reading the full episode context.
+
+Add an optional parameter to the pipeline run creation:
+```
+POST /api/pipeline/runs
+{
+  ...existing fields,
+  suggestedTopicKeywords: "B2B email copywriting pain point framework" // from discovery
+}
+```
+
+If suggestedTopicKeywords is provided, use it instead of calling extractTopicKeywords. If not provided (user manually pasted a transcript without using discovery), fall back to extractTopicKeywords as today.
+
+## What NOT to change
+
+- Do not modify the clip pipeline logic (Research → Surgery → Writer → Editor)
+- Do not modify any existing prompts (Research Analyst, Surgery Analyst, Writer, Editor)
+- Do not modify the results UI (Steps 1-5)
+- Do not modify the revision/feedback flow
+- Do not modify the episode dashboard
+- Do not modify how "Run New Clip Analysis" works when used without discovery
+- Do not modify the YouTube API integration
+- Do not remove or relocate any existing UI elements in the Episode Workspace
+
+## What to test
+
+### Test 1: Discovery with no historical data
+- [ ] Open an episode with a full transcript
+- [ ] Click "Discover Clips"
+- [ ] Wait for processing (may take 30-60 seconds for a long transcript)
+- [ ] Verify 4-6 clip cards appear
+- [ ] Each card shows: insight description, line numbers, word count, duration estimate, clip type, checkpoint ratings
+- [ ] Click "View Full Segment" on a card: full transcript segment appears, verbatim from the episode
+- [ ] Verify the transcript lines are EXACT copies from the episode transcript (no paraphrasing)
+
+### Test 2: Analyze a discovered clip
+- [ ] Click "Analyze This Clip" on any discovery card
+- [ ] Verify the clip orientation toggle is set to the recommended type
+- [ ] Verify the clip transcript textarea is pre-filled with the exact segment
+- [ ] Click "Run Analysis"
+- [ ] Verify the full pipeline runs and results display correctly
+- [ ] Verify all 5 result steps work (edit instructions, copy/publish, designer, competitive, marketing)
+
+### Test 3: Persistence
+- [ ] After running discovery, close and reopen the browser
+- [ ] Open the same episode
+- [ ] Verify the discovery results still appear (not requiring a re-run)
+- [ ] Click "Analyze This Clip" on a card — verify it still pre-fills correctly
+
+### Test 4: Re-discovery
+- [ ] Click "Re-discover" button
+- [ ] Verify it clears old results and runs a fresh discovery
+- [ ] Verify new results appear (may differ from the first run)
+
+### Test 5: Discovery with historical data
+- [ ] Ensure at least 5 records exist in competitive_intelligence with good quality scores
+- [ ] Run discovery on a new episode covering a similar topic
+- [ ] Check: does the discovery output show awareness of historical patterns?
+  - [ ] Does it prioritize moments with stats if stat-in-hook historically performs well?
+  - [ ] Does it mention historical context in its selection reasoning?
+- [ ] Compare against Test 1: are the selections noticeably different / more refined?
+
+### Test 6: No interference with existing flows
+- [ ] Manually run a clip analysis (paste transcript, don't use discovery) — everything works as before
+- [ ] Run a full episode pipeline — everything works as before
+- [ ] Use the revision/feedback flow — works as before
+- [ ] Navigate between episodes — works as before

@@ -431,7 +431,8 @@ export async function runClipPipeline(
         pipelineRunId: runId,
         episodeId: run?.episodeId ?? null,
         clipType,
-        topicKeywords: extractTopicKeywords(clipTranscript) || "",
+        topicKeywords:
+          overrideKeywords ?? (extractTopicKeywords(clipTranscript) || ""),
         topicCluster: null,
         constraintsRaw: raw,
         titleVerbRule: parseConstraintField(titleConstraints, /VERB RULE:\s*(.+)/i),
@@ -490,7 +491,8 @@ export async function runClipPipeline(
       const systemTags = extractSection(editorOutput, "YOUTUBE TAGS");
       const systemHashtags = extractSection(editorOutput, "INSTAGRAM HASHTAGS");
 
-      const topicKeywords = extractTopicKeywords(clipTranscript) || "";
+      const topicKeywords =
+        overrideKeywords ?? (extractTopicKeywords(clipTranscript) || "");
 
       const scoringInput = {
         youtubeShorts,

@@ -169,7 +169,7 @@ function parseDiscoveryOutput(raw: string): {
     const tsMatch = block.match(
       /\*\*Transcript segment:\*\*\s*\n```\s*\n?([\s\S]*?)\n?```/i,
     );
-    const transcriptSegment = tsMatch ? tsMatch[1].trim() : "";
+    const transcriptSegment = tsMatch ? tsMatch[1] : "";
 
     clips.push({
       number,
@@ -382,7 +382,7 @@ export default function EpisodeWorkspace() {
           clipType: clipType === "vertical"
             ? CreatePipelineRunBodyClipType.vertical
             : CreatePipelineRunBodyClipType.horizontal,
-          clipTranscript: clipTranscript.trim(),
+          clipTranscript: suggestedKeywords ? clipTranscript : clipTranscript.trim(),
           episodeId,
           ...(suggestedKeywords ? { suggestedTopicKeywords: suggestedKeywords } : {}),
         },

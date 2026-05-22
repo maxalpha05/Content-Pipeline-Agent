@@ -262,6 +262,13 @@ router.post("/episodes/:id/discover-clips", async (req, res): Promise<void> => {
     return;
   }
 
+  // Re-discover semantics: clear any prior stored output before rerunning so
+  // stale data is not retained if the new Claude call fails.
+  await db
+    .update(episodesTable)
+    .set({ discoveryOutput: null, updatedAt: new Date() })
+    .where(eq(episodesTable.id, id));
+
   let historicalContext = "";
   try {
     // Discovery is episode-level (clipType unknown), so derive topic keywords from the

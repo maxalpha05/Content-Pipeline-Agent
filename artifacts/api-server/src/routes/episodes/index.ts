@@ -271,16 +271,28 @@ router.post("/episodes/:id/discover-clips", async (req, res): Promise<void> => {
 
   let historicalContext = "";
   try {
-    // Discovery is episode-level (clipType unknown), so derive topic keywords from the
-    // full transcript and pull historical context across both orientations, preferring
-    // whichever pool yields a usable block.
+    // Discovery is episode-level (clipType unknown), so derive topic keywords from
+    // the full transcript and pull historical context for BOTH orientations.
+    // Both blocks are concatenated (with labels) so the agent can weight vertical
+    // vs horizontal recommendations against the patterns that have actually worked
+    // for each format historically.
     const episodeKeywords = extractTopicKeywords(episode.fullTranscript);
-    const verticalCtx = await getHistoricalContext(episodeKeywords, "vertical");
-    const horizontalCtx = await getHistoricalContext(
-      episodeKeywords,
-      "horizontal",
-    );
-    historicalContext = verticalCtx || horizontalCtx || "";
+    const [verticalCtx, horizontalCtx] = await Promise.all([
+      getHistoricalContext(episodeKeywords, "vertical"),
+      getHistoricalContext(episodeKeywords, "horizontal"),
+    ]);
+    const blocks: string[] = [];
+    if (verticalCtx) {
+      blocks.push(
+        `### VERTICAL CLIP HISTORY (YouTube Shorts / Reels / TikTok)\n\n${verticalCtx}`,
+      );
+    }
+    if (horizontalCtx) {
+      blocks.push(
+        `### HORIZONTAL CLIP HISTORY (LinkedIn / YouTube main)\n\n${horizontalCtx}`,
+      );
+    }
+    historicalContext = blocks.join("\n");
   } catch (err) {
     req.log.warn({ err }, "[discover-clips] historical-context query failed");
     historicalContext = "";

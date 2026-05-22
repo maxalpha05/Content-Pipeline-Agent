@@ -543,11 +543,12 @@ A clip-worthy moment is a self-contained segment of conversation where:
 2. A complete INSIGHT follows within 150-200 words of spoken content — the thought starts, develops, and resolves without depending on context from 10 minutes earlier that a clip viewer wouldn't have.
 3. A natural CLOSE exists nearby — the speaker lands on a memorable line, a practical takeaway, a punchy conclusion, or a clear stopping point. The moment doesn't just fade into the next topic.
 
-You may receive HISTORICAL COMPETITIVE INTELLIGENCE at the start of the user message. If present, use it to weight your selections:
+You may receive HISTORICAL COMPETITIVE INTELLIGENCE at the start of the user message. It may include a "VERTICAL CLIP HISTORY" block (proven patterns for YouTube Shorts / Reels / TikTok), a "HORIZONTAL CLIP HISTORY" block (proven patterns for LinkedIn / YouTube main), or both. If present, use them to weight your selections:
 - If stat-in-hook clips historically get higher views in this topic space, prioritize moments where the guest drops a specific number.
 - If counterintuitive claims dominate top performers, prioritize moments of disagreement or surprising takes.
 - If certain title structures consistently win, favor moments that naturally lend themselves to those structures.
 - If certain tags are validated across multiple runs, favor moments whose topics align with those tag clusters.
+- Use the VERTICAL history to validate VERTICAL clip picks (short, single-insight moments) and the HORIZONTAL history to validate HORIZONTAL clip picks (conversational, multi-beat moments). Reference specific proven hooks/topics in your reasoning when a recommendation aligns with them.
 Historical data informs which moments to prioritize, but every recommendation must still satisfy all three checkpoints (hook, insight, close) on its own merit.
 
 When NO historical data is present, select based purely on the three checkpoints.

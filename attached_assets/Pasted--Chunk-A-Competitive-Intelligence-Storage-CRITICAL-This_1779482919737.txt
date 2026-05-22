@@ -1,0 +1,223 @@
+# Chunk A: Competitive Intelligence Storage
+
+## CRITICAL: This is a feature addition. Do NOT modify any existing pipeline logic, prompts, API calls, UI flows, or results display. The current clip and episode pipelines must work exactly as they do today. This chunk only ADDS a database table, a save operation after each clip run, and a lightweight signal capture on copy button clicks.
+
+## What we're building
+
+After every clip pipeline run completes, the system automatically saves the competitive research data (YouTube API results, web search findings, cross-platform patterns, creative constraints) to a persistent database table. It also computes a data quality score so future reads can filter out weak research runs. No manual approval, no user interaction, no extra clicks.
+
+## Step 1: Add the competitive_intelligence table
+
+Create a new schema file for this table. Follow the exact Drizzle ORM pattern used in pipeline-runs.ts.
+
+```
+Table: competitive_intelligence
+
+  id: serial primary key
+  pipelineRunId: integer (FK to pipeline_runs, onDelete cascade, NOT NULL)
+  episodeId: integer (FK to episodes, onDelete cascade, nullable)
+  createdAt: timestamp (defaultNow)
+
+  // Topic identification
+  topicKeywords: text (NOT NULL)
+  topicCluster: text (nullable — assigned by Research Analyst via ## TOPIC CLUSTER section)
+  clipType: text (NOT NULL — "vertical" or "horizontal")
+
+  // YouTube API data (structured, stored as JSON string)
+  youtubeShorts: text (nullable — JSON stringified array of shorts with title, url, channel, views, likes, comments, tags, thumbnail)
+  youtubeShortCount: integer (nullable — how many shorts were returned)
+  youtubeTopViews: integer (nullable — highest view count among returned shorts)
+
+  // Other platform data (text summaries from Research Analyst)
+  instagramData: text (nullable)
+  tiktokData: text (nullable)
+  linkedinData: text (nullable)
+  twitterData: text (nullable)
+  crossPlatformPatterns: text (nullable)
+
+  // Creative constraints (from ## CREATIVE CONSTRAINTS section)
+  constraintsRaw: text (nullable — full constraints block verbatim)
+
+  // What the Writer/Editor produced (stored automatically, NOT user-approved)
+  systemTitle: text (nullable — the primary title from Editor output)
+  systemTitleVariations: text (nullable — all 5 variations as text)
+  systemTags: text (nullable — YouTube tags from Editor output)
+  systemHashtags: text (nullable — Instagram hashtags from Editor output)
+
+  // Lightweight user signal (which title the user copied, if any)
+  userSelectedTitle: text (nullable — populated only if user clicks copy on a specific title)
+  userSelectedTitleIndex: integer (nullable — which of the 5 variations was copied, 0 = primary)
+
+  // Full research output for reference
+  researchOutputRaw: text (nullable — full Research Analyst output)
+
+  // Automatic data quality scoring
+  dataQualityScore: integer (NOT NULL, default 1 — computed automatically, range 1-10)
+  sufficientData: boolean (NOT NULL, default true)
+```
+
+Export the table from the schema index file. Run db:push to apply.
+
+## Step 2: Build the data quality scoring function
+
+Add a function that computes the dataQualityScore automatically based on objective signals. No manual input.
+
+```
+function computeDataQualityScore(data) {
+  var score = 0;
+
+  // YouTube data quality (0-4 points)
+  var ytCount = data.youtubeShortCount || 0;
+  if (ytCount >= 6) score += 2;
+  else if (ytCount >= 3) score += 1;
+
+  var topViews = data.youtubeTopViews || 0;
+  if (topViews >= 100000) score += 2;
+  else if (topViews >= 10000) score += 1;
+
+  // Platform coverage (0-3 points)
+  var platformCount = 0;
+  if (data.instagramData && data.instagramData.length > 50) platformCount++;
+  if (data.tiktokData && data.tiktokData.length > 50) platformCount++;
+  if (data.linkedinData && data.linkedinData.length > 50) platformCount++;
+  if (data.twitterData && data.twitterData.length > 50) platformCount++;
+  if (platformCount >= 3) score += 3;
+  else if (platformCount >= 2) score += 2;
+  else if (platformCount >= 1) score += 1;
+
+  // Cross-platform patterns exist (0-1 points)
+  if (data.crossPlatformPatterns && data.crossPlatformPatterns.length > 100) score += 1;
+
+  // Creative constraints exist (0-1 points)
+  if (data.constraintsRaw && data.constraintsRaw.length > 100) score += 1;
+
+  // Topic keywords are specific, not generic (0-1 points)
+  var keywordCount = (data.topicKeywords || '').split(' ').filter(function(w) { return w.length > 3; }).length;
+  if (keywordCount >= 3) score += 1;
+
+  // Cap at 10
+  return Math.min(10, Math.max(1, score));
+}
+
+function isSufficientData(data) {
+  // Insufficient if fewer than 3 YouTube Shorts with at least 1K views each
+  if (!data.youtubeShorts) return false;
+  try {
+    var shorts = JSON.parse(data.youtubeShorts);
+    var qualityShorts = shorts.filter(function(s) { return s.views >= 1000; });
+    return qualityShorts.length >= 2;
+  } catch (e) {
+    return false;
+  }
+}
+```
+
+## Step 3: Save data after each clip pipeline run
+
+Find the place in `runClipPipeline` in the orchestrator where the clip pipeline completes successfully (after the Editor call returns). At that point, save a record to competitive_intelligence.
+
+Here is the logic for populating each field:
+
+```
+// pipelineRunId: the ID of the current pipeline run
+// episodeId: from the pipeline run's episodeId field (nullable)
+// topicKeywords: from the extractTopicKeywords function (already computed)
+// topicCluster: parse ## TOPIC CLUSTER from the Research Analyst output
+// clipType: from the pipeline run input
+
+// youtubeShorts: JSON.stringify the YouTube API results array (the raw structured data from searchYouTubeShorts, before formatting)
+// youtubeShortCount: length of the YouTube results array
+// youtubeTopViews: Math.max of all view counts in the YouTube results
+
+// instagramData: parse ### Instagram Reels section from Research Analyst output
+// tiktokData: parse ### TikTok section
+// linkedinData: parse ### LinkedIn Posts section
+// twitterData: parse ### Twitter/X or ### Twitter section
+// crossPlatformPatterns: parse ### Cross-Platform Patterns section
+
+// constraintsRaw: parse ## CREATIVE CONSTRAINTS section from Research Analyst output
+//   (reuse the extractCreativeConstraints helper from Chunk 6 if it exists)
+
+// systemTitle: parse ## TITLE section from Editor output
+// systemTitleVariations: parse ## TITLE VARIATIONS section from Editor output
+// systemTags: parse ## YOUTUBE TAGS section from Editor output
+// systemHashtags: parse ## INSTAGRAM HASHTAGS section from Editor output
+
+// userSelectedTitle: null (populated later by copy button signal, see Step 4)
+// userSelectedTitleIndex: null (populated later)
+
+// researchOutputRaw: the full text output from the Research Analyst call
+
+// dataQualityScore: computeDataQualityScore(record)
+// sufficientData: isSufficientData(record)
+```
+
+Wrap the entire save operation in a try/catch. If the save fails, log the error but do NOT fail the pipeline. The user must see their results regardless of whether the intelligence record was saved.
+
+## Step 4: Capture title copy signal
+
+In the frontend results UI, the clip results already have copy buttons next to the primary title and each title variation. Add a lightweight API call when any title copy button is clicked:
+
+```
+// When user clicks copy on the primary title
+PATCH /api/competitive-intelligence/:pipelineRunId
+{ userSelectedTitle: "the title text", userSelectedTitleIndex: 0 }
+
+// When user clicks copy on variation 1
+PATCH /api/competitive-intelligence/:pipelineRunId
+{ userSelectedTitle: "the variation text", userSelectedTitleIndex: 1 }
+
+// etc for variations 2-5
+```
+
+Add a PATCH endpoint for competitive_intelligence that accepts pipelineRunId and updates only userSelectedTitle and userSelectedTitleIndex. This is fire-and-forget from the frontend. No loading state, no error display. If it fails silently, that's fine. It's a supplementary signal, not critical data.
+
+This means: zero extra clicks for the user. They're already clicking copy. We just log which one.
+
+## Step 5: Add API routes
+
+Add these routes:
+
+```
+GET /api/competitive-intelligence
+  Query params: topicCluster (optional), minQualityScore (optional, default 5), limit (optional, default 20)
+  Returns: records sorted by createdAt desc, filtered by params
+  This route is for future use by Chunk B and Clip Discovery. Nothing calls it yet.
+
+GET /api/competitive-intelligence/clusters
+  Returns: list of unique topicCluster values with count of records per cluster and average dataQualityScore
+  This route is for future use. Nothing calls it yet.
+
+PATCH /api/competitive-intelligence/:pipelineRunId
+  Body: { userSelectedTitle, userSelectedTitleIndex }
+  Updates only those two fields on the record matching pipelineRunId
+  Returns: 200 OK
+```
+
+## What NOT to change
+
+- Do not modify any existing pipeline logic
+- Do not modify any prompts
+- Do not modify the results UI layout or structure
+- Do not modify the episode workspace
+- Do not modify the pipeline_runs table
+- Do not add any new UI pages or dashboards for viewing competitive intelligence (that comes later)
+- The only frontend change is the fire-and-forget PATCH call on title copy button clicks
+
+## What to test
+
+- [ ] Run a clip analysis
+- [ ] After results appear, check the server logs: is there a log confirming the competitive_intelligence record was saved?
+- [ ] Query the database directly (Replit DB viewer or a quick script): does the record exist?
+- [ ] Check youtubeShorts field: is it a valid JSON string containing the YouTube API results?
+- [ ] Check youtubeShortCount and youtubeTopViews: are they populated with correct numbers?
+- [ ] Check dataQualityScore: is it between 1-10 and does it reflect the richness of the data?
+- [ ] Check sufficientData: is it true for runs with 2+ YouTube Shorts over 1K views, false otherwise?
+- [ ] Check topicCluster: is it populated?
+- [ ] Check constraintsRaw: is it populated with the creative constraints block?
+- [ ] Check systemTitle: is it populated with the primary title from the Editor?
+- [ ] Click copy on one of the title variations in the results UI
+- [ ] Query the database again: is userSelectedTitle now populated with the title you copied?
+- [ ] Is userSelectedTitleIndex correct (0 for primary, 1-5 for variations)?
+- [ ] Run the pipeline a second time. Verify a second record is saved (not overwriting the first)
+- [ ] Verify the existing pipeline still works exactly as before (results display correctly, revision flow works, episode workspace unchanged)

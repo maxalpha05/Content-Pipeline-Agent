@@ -6,6 +6,8 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from "./competitiveIntelligence";
+export * from "./competitiveIntelligenceCluster";
 export * from "./createEpisodeBody";
 export * from "./createPipelineRunBody";
 export * from "./createPipelineRunBodyClipType";
@@ -15,6 +17,7 @@ export * from "./episodeDetail";
 export * from "./episodeRunCard";
 export * from "./episodeStatus";
 export * from "./healthStatus";
+export * from "./listCompetitiveIntelligenceParams";
 export * from "./pipelineDashboard";
 export * from "./pipelineError";
 export * from "./pipelineRun";
@@ -27,5 +30,7 @@ export * from "./pipelineRunStatus";
 export * from "./pipelineRunType";
 export * from "./rerunPipelineRun200";
 export * from "./submitFeedbackBody";
+export * from "./updateCompetitiveIntelligenceTitleBody";
+export * from "./updateCompetitiveIntelligenceTitleSignal200";
 export * from "./updateEpisodeBody";
 export * from "./updateEpisodeBodyStatus";

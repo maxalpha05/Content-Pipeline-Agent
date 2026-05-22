@@ -17,17 +17,22 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  CompetitiveIntelligence,
+  CompetitiveIntelligenceCluster,
   CreateEpisodeBody,
   CreatePipelineRunBody,
   Episode,
   EpisodeDetail,
   HealthStatus,
+  ListCompetitiveIntelligenceParams,
   PipelineDashboard,
   PipelineError,
   PipelineRun,
   PipelineRunDetail,
   RerunPipelineRun200,
   SubmitFeedbackBody,
+  UpdateCompetitiveIntelligenceTitleBody,
+  UpdateCompetitiveIntelligenceTitleSignal200,
   UpdateEpisodeBody,
 } from "./api.schemas";
 
@@ -1291,6 +1296,312 @@ export const useRerunPipelineRun = <
   TContext
 > => {
   return useMutation(getRerunPipelineRunMutationOptions(options));
+};
+
+/**
+ * @summary List competitive intelligence records
+ */
+export const getListCompetitiveIntelligenceUrl = (
+  params?: ListCompetitiveIntelligenceParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/competitive-intelligence?${stringifiedParams}`
+    : `/api/competitive-intelligence`;
+};
+
+export const listCompetitiveIntelligence = async (
+  params?: ListCompetitiveIntelligenceParams,
+  options?: RequestInit,
+): Promise<CompetitiveIntelligence[]> => {
+  return customFetch<CompetitiveIntelligence[]>(
+    getListCompetitiveIntelligenceUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListCompetitiveIntelligenceQueryKey = (
+  params?: ListCompetitiveIntelligenceParams,
+) => {
+  return [
+    `/api/competitive-intelligence`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getListCompetitiveIntelligenceQueryOptions = <
+  TData = Awaited<ReturnType<typeof listCompetitiveIntelligence>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListCompetitiveIntelligenceParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listCompetitiveIntelligence>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListCompetitiveIntelligenceQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listCompetitiveIntelligence>>
+  > = ({ signal }) =>
+    listCompetitiveIntelligence(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listCompetitiveIntelligence>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListCompetitiveIntelligenceQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listCompetitiveIntelligence>>
+>;
+export type ListCompetitiveIntelligenceQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List competitive intelligence records
+ */
+
+export function useListCompetitiveIntelligence<
+  TData = Awaited<ReturnType<typeof listCompetitiveIntelligence>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListCompetitiveIntelligenceParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listCompetitiveIntelligence>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListCompetitiveIntelligenceQueryOptions(
+    params,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List distinct topic clusters with aggregates
+ */
+export const getListCompetitiveIntelligenceClustersUrl = () => {
+  return `/api/competitive-intelligence/clusters`;
+};
+
+export const listCompetitiveIntelligenceClusters = async (
+  options?: RequestInit,
+): Promise<CompetitiveIntelligenceCluster[]> => {
+  return customFetch<CompetitiveIntelligenceCluster[]>(
+    getListCompetitiveIntelligenceClustersUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListCompetitiveIntelligenceClustersQueryKey = () => {
+  return [`/api/competitive-intelligence/clusters`] as const;
+};
+
+export const getListCompetitiveIntelligenceClustersQueryOptions = <
+  TData = Awaited<ReturnType<typeof listCompetitiveIntelligenceClusters>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listCompetitiveIntelligenceClusters>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListCompetitiveIntelligenceClustersQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listCompetitiveIntelligenceClusters>>
+  > = ({ signal }) =>
+    listCompetitiveIntelligenceClusters({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listCompetitiveIntelligenceClusters>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListCompetitiveIntelligenceClustersQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listCompetitiveIntelligenceClusters>>
+>;
+export type ListCompetitiveIntelligenceClustersQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List distinct topic clusters with aggregates
+ */
+
+export function useListCompetitiveIntelligenceClusters<
+  TData = Awaited<ReturnType<typeof listCompetitiveIntelligenceClusters>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listCompetitiveIntelligenceClusters>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions =
+    getListCompetitiveIntelligenceClustersQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Record which title the user copied
+ */
+export const getUpdateCompetitiveIntelligenceTitleSignalUrl = (
+  pipelineRunId: number,
+) => {
+  return `/api/competitive-intelligence/${pipelineRunId}`;
+};
+
+export const updateCompetitiveIntelligenceTitleSignal = async (
+  pipelineRunId: number,
+  updateCompetitiveIntelligenceTitleBody: UpdateCompetitiveIntelligenceTitleBody,
+  options?: RequestInit,
+): Promise<UpdateCompetitiveIntelligenceTitleSignal200> => {
+  return customFetch<UpdateCompetitiveIntelligenceTitleSignal200>(
+    getUpdateCompetitiveIntelligenceTitleSignalUrl(pipelineRunId),
+    {
+      ...options,
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(updateCompetitiveIntelligenceTitleBody),
+    },
+  );
+};
+
+export const getUpdateCompetitiveIntelligenceTitleSignalMutationOptions = <
+  TError = ErrorType<PipelineError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateCompetitiveIntelligenceTitleSignal>>,
+    TError,
+    {
+      pipelineRunId: number;
+      data: BodyType<UpdateCompetitiveIntelligenceTitleBody>;
+    },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateCompetitiveIntelligenceTitleSignal>>,
+  TError,
+  {
+    pipelineRunId: number;
+    data: BodyType<UpdateCompetitiveIntelligenceTitleBody>;
+  },
+  TContext
+> => {
+  const mutationKey = ["updateCompetitiveIntelligenceTitleSignal"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateCompetitiveIntelligenceTitleSignal>>,
+    {
+      pipelineRunId: number;
+      data: BodyType<UpdateCompetitiveIntelligenceTitleBody>;
+    }
+  > = (props) => {
+    const { pipelineRunId, data } = props ?? {};
+
+    return updateCompetitiveIntelligenceTitleSignal(
+      pipelineRunId,
+      data,
+      requestOptions,
+    );
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateCompetitiveIntelligenceTitleSignalMutationResult =
+  NonNullable<
+    Awaited<ReturnType<typeof updateCompetitiveIntelligenceTitleSignal>>
+  >;
+export type UpdateCompetitiveIntelligenceTitleSignalMutationBody =
+  BodyType<UpdateCompetitiveIntelligenceTitleBody>;
+export type UpdateCompetitiveIntelligenceTitleSignalMutationError =
+  ErrorType<PipelineError>;
+
+/**
+ * @summary Record which title the user copied
+ */
+export const useUpdateCompetitiveIntelligenceTitleSignal = <
+  TError = ErrorType<PipelineError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateCompetitiveIntelligenceTitleSignal>>,
+    TError,
+    {
+      pipelineRunId: number;
+      data: BodyType<UpdateCompetitiveIntelligenceTitleBody>;
+    },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateCompetitiveIntelligenceTitleSignal>>,
+  TError,
+  {
+    pipelineRunId: number;
+    data: BodyType<UpdateCompetitiveIntelligenceTitleBody>;
+  },
+  TContext
+> => {
+  return useMutation(
+    getUpdateCompetitiveIntelligenceTitleSignalMutationOptions(options),
+  );
 };
 
 /**

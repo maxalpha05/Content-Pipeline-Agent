@@ -1,7 +1,17 @@
 import { anthropic } from "@workspace/integrations-anthropic-ai";
-import { db, pipelineRunsTable, creativeConstraintsTable } from "@workspace/db";
+import {
+  db,
+  pipelineRunsTable,
+  creativeConstraintsTable,
+  competitiveIntelligenceTable,
+} from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { logger } from "../logger";
+import {
+  computeDataQualityScore,
+  isSufficientData,
+} from "../competitive-intel/scoring";
+import type { YouTubeShort } from "./youtube";
 import {
   ANALYST_EPISODE_PROMPT,
   RESEARCH_ANALYST_PROMPT,
@@ -209,6 +219,14 @@ function extractSection(text: string, heading: string): string | null {
   return match ? match[1].trim() : null;
 }
 
+function extractSubSection(text: string, heading: string): string | null {
+  const escaped = heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = text.match(
+    new RegExp(`### ${escaped}\\s*\\n([\\s\\S]*?)(?=\\n### |\\n## |$)`, "i"),
+  );
+  return match ? match[1].trim() : null;
+}
+
 export async function runClipPipeline(
   runId: number,
   episodeTranscript: string,
@@ -411,6 +429,84 @@ export async function runClipPipeline(
       });
     } catch (constraintErr) {
       logger.error({ constraintErr, runId }, "Failed to write creative constraints record — pipeline continues");
+    }
+
+    // --- Write competitive intelligence record (best-effort, never throws) ---
+    try {
+      const youtubeShorts: YouTubeShort[] = youtubeDataJson
+        ? (JSON.parse(youtubeDataJson) as YouTubeShort[])
+        : [];
+      const topViews =
+        youtubeShorts.length > 0
+          ? Math.max(...youtubeShorts.map((s) => s.views))
+          : 0;
+
+      const topicCluster = extractSection(researchOutput, "TOPIC CLUSTER");
+      const instagramData = extractSubSection(researchOutput, "Instagram Reels");
+      const tiktokData = extractSubSection(researchOutput, "TikTok");
+      const linkedinData = extractSubSection(researchOutput, "LinkedIn Posts");
+      const twitterData =
+        extractSubSection(researchOutput, "Twitter/X") ??
+        extractSubSection(researchOutput, "Twitter");
+      const crossPlatformPatterns = extractSubSection(
+        researchOutput,
+        "Cross-Platform Patterns",
+      );
+
+      const systemTitle = extractSection(editorOutput, "TITLE");
+      const systemTitleVariations = extractSection(
+        editorOutput,
+        "TITLE VARIATIONS",
+      );
+      const systemTags = extractSection(editorOutput, "YOUTUBE TAGS");
+      const systemHashtags = extractSection(editorOutput, "INSTAGRAM HASHTAGS");
+
+      const topicKeywords = extractTopicKeywords(clipTranscript) || "";
+
+      const scoringInput = {
+        youtubeShorts,
+        instagramData,
+        tiktokData,
+        linkedinData,
+        twitterData,
+        crossPlatformPatterns,
+        constraintsRaw: creativeConstraints,
+        topicKeywords,
+      };
+
+      const [runRow] = await db
+        .select()
+        .from(pipelineRunsTable)
+        .where(eq(pipelineRunsTable.id, runId));
+
+      await db.insert(competitiveIntelligenceTable).values({
+        pipelineRunId: runId,
+        episodeId: runRow?.episodeId ?? null,
+        topicKeywords,
+        topicCluster,
+        clipType,
+        youtubeShorts: youtubeDataJson,
+        youtubeShortCount: youtubeShorts.length,
+        youtubeTopViews: topViews,
+        instagramData,
+        tiktokData,
+        linkedinData,
+        twitterData,
+        crossPlatformPatterns,
+        constraintsRaw: creativeConstraints || null,
+        systemTitle,
+        systemTitleVariations,
+        systemTags,
+        systemHashtags,
+        researchOutputRaw: researchOutput,
+        dataQualityScore: computeDataQualityScore(scoringInput),
+        sufficientData: isSufficientData(scoringInput),
+      });
+    } catch (ciErr) {
+      logger.error(
+        { ciErr, runId },
+        "Failed to write competitive intelligence record — pipeline continues",
+      );
     }
 
     sendEvent({

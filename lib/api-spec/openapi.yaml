@@ -14,6 +14,8 @@ tags:
     description: Content pipeline operations
   - name: episodes
     description: Episode management operations
+  - name: competitive-intelligence
+    description: Competitive intelligence records captured from clip pipeline runs
 paths:
   /healthz:
     get:
@@ -321,6 +323,87 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PipelineError"
+  /competitive-intelligence:
+    get:
+      operationId: listCompetitiveIntelligence
+      tags: [competitive-intelligence]
+      summary: List competitive intelligence records
+      parameters:
+        - name: topicCluster
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: minQualityScore
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 5
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: List of competitive intelligence rows
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CompetitiveIntelligence"
+  /competitive-intelligence/clusters:
+    get:
+      operationId: listCompetitiveIntelligenceClusters
+      tags: [competitive-intelligence]
+      summary: List distinct topic clusters with aggregates
+      responses:
+        "200":
+          description: Cluster aggregates
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CompetitiveIntelligenceCluster"
+  /competitive-intelligence/{pipelineRunId}:
+    patch:
+      operationId: updateCompetitiveIntelligenceTitleSignal
+      tags: [competitive-intelligence]
+      summary: Record which title the user copied
+      parameters:
+        - name: pipelineRunId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCompetitiveIntelligenceTitleBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                required:
+                  - ok
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PipelineError"
   /pipeline/dashboard:
     get:
       operationId: getPipelineDashboard
@@ -592,6 +675,89 @@ components:
         - approvedRuns
         - pendingReviewRuns
         - recentRuns
+    CompetitiveIntelligence:
+      type: object
+      properties:
+        id:
+          type: integer
+        pipelineRunId:
+          type: integer
+        episodeId:
+          type: ["integer", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        topicKeywords:
+          type: string
+        topicCluster:
+          type: ["string", "null"]
+        clipType:
+          type: string
+        youtubeShorts:
+          type: ["string", "null"]
+        youtubeShortCount:
+          type: ["integer", "null"]
+        youtubeTopViews:
+          type: ["integer", "null"]
+        instagramData:
+          type: ["string", "null"]
+        tiktokData:
+          type: ["string", "null"]
+        linkedinData:
+          type: ["string", "null"]
+        twitterData:
+          type: ["string", "null"]
+        crossPlatformPatterns:
+          type: ["string", "null"]
+        constraintsRaw:
+          type: ["string", "null"]
+        systemTitle:
+          type: ["string", "null"]
+        systemTitleVariations:
+          type: ["string", "null"]
+        systemTags:
+          type: ["string", "null"]
+        systemHashtags:
+          type: ["string", "null"]
+        userSelectedTitle:
+          type: ["string", "null"]
+        userSelectedTitleIndex:
+          type: ["integer", "null"]
+        researchOutputRaw:
+          type: ["string", "null"]
+        dataQualityScore:
+          type: integer
+        sufficientData:
+          type: boolean
+      required:
+        - id
+        - pipelineRunId
+        - createdAt
+        - topicKeywords
+        - clipType
+        - dataQualityScore
+        - sufficientData
+    CompetitiveIntelligenceCluster:
+      type: object
+      properties:
+        topicCluster:
+          type: ["string", "null"]
+        count:
+          type: integer
+        avgQualityScore:
+          type: ["number", "null"]
+      required:
+        - count
+    UpdateCompetitiveIntelligenceTitleBody:
+      type: object
+      properties:
+        userSelectedTitle:
+          type: string
+        userSelectedTitleIndex:
+          type: integer
+      required:
+        - userSelectedTitle
+        - userSelectedTitleIndex
     PipelineError:
       type: object
       properties:

@@ -307,13 +307,32 @@ function buildExportMarkdown(run: PipelineRunDetail): string {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function CopyButton({ text, label = "Copy" }: { text: string; label?: string }) {
+function CopyButton({
+  text,
+  label = "Copy",
+  titleSignal,
+}: {
+  text: string;
+  label?: string;
+  titleSignal?: { pipelineRunId: number; index: number };
+}) {
   const [copied, setCopied] = useState(false);
   const handleCopy = () => {
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
+    if (titleSignal) {
+      // Fire-and-forget; never surface errors to the user.
+      fetch(`/api/competitive-intelligence/${titleSignal.pipelineRunId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userSelectedTitle: text,
+          userSelectedTitleIndex: titleSignal.index,
+        }),
+      }).catch(() => {});
+    }
   };
   return (
     <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5" onClick={handleCopy}>
@@ -943,7 +962,10 @@ export default function ClipResults({ run, runId, isProcessing }: ClipResultsPro
                       {editor.title.length} chars {editor.title.length <= 60 ? "(under 60 ✓)" : editor.title.length <= 80 ? "(60-80)" : "(over 80 limit)"}
                     </p>
                   </div>
-                  <CopyButton text={editor.title} />
+                  <CopyButton
+                    text={editor.title}
+                    titleSignal={{ pipelineRunId: run.id, index: 0 }}
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -981,7 +1003,10 @@ export default function ClipResults({ run, runId, isProcessing }: ClipResultsPro
                             {v.title.length} chars
                           </p>
                         </div>
-                        <CopyButton text={v.title} />
+                        <CopyButton
+                          text={v.title}
+                          titleSignal={{ pipelineRunId: run.id, index: i + 1 }}
+                        />
                       </div>
                     ))}
                   </div>

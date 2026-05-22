@@ -246,6 +246,65 @@ export interface PipelineDashboard {
   recentRuns: PipelineRun[];
 }
 
+export interface CompetitiveIntelligence {
+  id: number;
+  pipelineRunId: number;
+  /** @nullable */
+  episodeId?: number | null;
+  createdAt: string;
+  topicKeywords: string;
+  /** @nullable */
+  topicCluster?: string | null;
+  clipType: string;
+  /** @nullable */
+  youtubeShorts?: string | null;
+  /** @nullable */
+  youtubeShortCount?: number | null;
+  /** @nullable */
+  youtubeTopViews?: number | null;
+  /** @nullable */
+  instagramData?: string | null;
+  /** @nullable */
+  tiktokData?: string | null;
+  /** @nullable */
+  linkedinData?: string | null;
+  /** @nullable */
+  twitterData?: string | null;
+  /** @nullable */
+  crossPlatformPatterns?: string | null;
+  /** @nullable */
+  constraintsRaw?: string | null;
+  /** @nullable */
+  systemTitle?: string | null;
+  /** @nullable */
+  systemTitleVariations?: string | null;
+  /** @nullable */
+  systemTags?: string | null;
+  /** @nullable */
+  systemHashtags?: string | null;
+  /** @nullable */
+  userSelectedTitle?: string | null;
+  /** @nullable */
+  userSelectedTitleIndex?: number | null;
+  /** @nullable */
+  researchOutputRaw?: string | null;
+  dataQualityScore: number;
+  sufficientData: boolean;
+}
+
+export interface CompetitiveIntelligenceCluster {
+  /** @nullable */
+  topicCluster?: string | null;
+  count: number;
+  /** @nullable */
+  avgQualityScore?: number | null;
+}
+
+export interface UpdateCompetitiveIntelligenceTitleBody {
+  userSelectedTitle: string;
+  userSelectedTitleIndex: number;
+}
+
 export interface PipelineError {
   error: string;
 }
@@ -253,4 +312,14 @@ export interface PipelineError {
 export type RerunPipelineRun200 = {
   id: number;
   status: string;
+};
+
+export type ListCompetitiveIntelligenceParams = {
+  topicCluster?: string;
+  minQualityScore?: number;
+  limit?: number;
+};
+
+export type UpdateCompetitiveIntelligenceTitleSignal200 = {
+  ok: boolean;
 };

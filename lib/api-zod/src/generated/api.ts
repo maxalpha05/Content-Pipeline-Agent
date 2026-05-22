@@ -302,6 +302,81 @@ export const RerunPipelineRunResponse = zod.object({
 });
 
 /**
+ * @summary List competitive intelligence records
+ */
+export const listCompetitiveIntelligenceQueryMinQualityScoreDefault = 5;
+export const listCompetitiveIntelligenceQueryLimitDefault = 20;
+
+export const ListCompetitiveIntelligenceQueryParams = zod.object({
+  topicCluster: zod.coerce.string().optional(),
+  minQualityScore: zod.coerce
+    .number()
+    .default(listCompetitiveIntelligenceQueryMinQualityScoreDefault),
+  limit: zod.coerce
+    .number()
+    .default(listCompetitiveIntelligenceQueryLimitDefault),
+});
+
+export const ListCompetitiveIntelligenceResponseItem = zod.object({
+  id: zod.number(),
+  pipelineRunId: zod.number(),
+  episodeId: zod.number().nullish(),
+  createdAt: zod.coerce.date(),
+  topicKeywords: zod.string(),
+  topicCluster: zod.string().nullish(),
+  clipType: zod.string(),
+  youtubeShorts: zod.string().nullish(),
+  youtubeShortCount: zod.number().nullish(),
+  youtubeTopViews: zod.number().nullish(),
+  instagramData: zod.string().nullish(),
+  tiktokData: zod.string().nullish(),
+  linkedinData: zod.string().nullish(),
+  twitterData: zod.string().nullish(),
+  crossPlatformPatterns: zod.string().nullish(),
+  constraintsRaw: zod.string().nullish(),
+  systemTitle: zod.string().nullish(),
+  systemTitleVariations: zod.string().nullish(),
+  systemTags: zod.string().nullish(),
+  systemHashtags: zod.string().nullish(),
+  userSelectedTitle: zod.string().nullish(),
+  userSelectedTitleIndex: zod.number().nullish(),
+  researchOutputRaw: zod.string().nullish(),
+  dataQualityScore: zod.number(),
+  sufficientData: zod.boolean(),
+});
+export const ListCompetitiveIntelligenceResponse = zod.array(
+  ListCompetitiveIntelligenceResponseItem,
+);
+
+/**
+ * @summary List distinct topic clusters with aggregates
+ */
+export const ListCompetitiveIntelligenceClustersResponseItem = zod.object({
+  topicCluster: zod.string().nullish(),
+  count: zod.number(),
+  avgQualityScore: zod.number().nullish(),
+});
+export const ListCompetitiveIntelligenceClustersResponse = zod.array(
+  ListCompetitiveIntelligenceClustersResponseItem,
+);
+
+/**
+ * @summary Record which title the user copied
+ */
+export const UpdateCompetitiveIntelligenceTitleSignalParams = zod.object({
+  pipelineRunId: zod.coerce.number(),
+});
+
+export const UpdateCompetitiveIntelligenceTitleSignalBody = zod.object({
+  userSelectedTitle: zod.string(),
+  userSelectedTitleIndex: zod.number(),
+});
+
+export const UpdateCompetitiveIntelligenceTitleSignalResponse = zod.object({
+  ok: zod.boolean(),
+});
+
+/**
  * @summary Get dashboard summary stats
  */
 export const GetPipelineDashboardResponse = zod.object({

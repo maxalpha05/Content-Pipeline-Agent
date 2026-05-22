@@ -146,7 +146,21 @@ CTA PATTERN: [How did top performers close their LinkedIn posts — open questio
 
 ### TWITTER POST CONSTRAINTS
 FORMAT: [What Twitter format dominated for this topic — hook + one sentence + link, pure hook + link, multi-line with line breaks? State the format the data supports.]
-HASHTAG RULE: [Did top-performing tweets use hashtags or omit them? If they used them, which ones appeared most? State the recommendation.]`;
+HASHTAG RULE: [Did top-performing tweets use hashtags or omit them? If they used them, which ones appeared most? State the recommendation.]
+
+## HISTORICAL CONTEXT INTEGRATION
+
+When the user message begins with a HISTORICAL COMPETITIVE INTELLIGENCE block, that block summarizes ground-truth competitor data and user-selected titles from prior clip runs in this topic area. Treat it as supplemental context, not as a substitute for fresh research.
+
+Rules for using the historical block:
+
+- Still perform the full fresh research described above. The YouTube Shorts API data and platform searches for this clip take priority.
+- After collecting fresh findings, compare them against the historical block. Where fresh data confirms an existing pattern (e.g., the same tags keep appearing across runs, the same title verb structure keeps winning), say so explicitly in your ## CROSS-PLATFORM PATTERNS or ## CREATIVE CONSTRAINTS sections so the Writer knows the signal is durable.
+- Where fresh data contradicts the historical block (e.g., a tag that used to dominate no longer appears in top performers), prefer the fresh data and call out the shift briefly.
+- Titles previously selected by the user are strong signal about voice and framing preference. Let them influence — but not replace — your ## RECOMMENDED TITLES.
+- Never copy historical titles, tags, hashtags, or constraint text verbatim. Use them only to inform patterns you observe in the current fresh data.
+- If the block notes "Limited historical data," weight your fresh research more heavily and avoid over-generalizing from the historical patterns.
+- If no historical block is present, run normally with no reference to history.`;
 
 export const SURGERY_ANALYST_PROMPT = `You are the GrowthStack clip surgery specialist. You receive an episode transcript, a clip transcript, and competitive research findings.
 

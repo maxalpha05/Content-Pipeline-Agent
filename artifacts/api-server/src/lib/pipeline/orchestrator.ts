@@ -11,6 +11,7 @@ import {
   computeDataQualityScore,
   isSufficientData,
 } from "../competitive-intel/scoring";
+import { getHistoricalContext } from "../competitive-intel/historical-context";
 import type { YouTubeShort } from "./youtube";
 import {
   ANALYST_EPISODE_PROMPT,
@@ -295,7 +296,26 @@ export async function runClipPipeline(
         .where(eq(pipelineRunsTable.id, runId));
     }
 
-    const researchUserMessage = `CLIP TRANSCRIPT:\n${clipTranscript}\n\nYOUTUBE DATA (real API data with actual view counts and tags):\n${formattedYoutubeData}\n\nAnalyze the YouTube data directly. Then search Instagram, TikTok, LinkedIn, and Twitter using site: operators for competitive data on those platforms.`;
+    let historicalContext = "";
+    try {
+      const historicalKeywords = extractTopicKeywords(clipTranscript);
+      historicalContext = await getHistoricalContext(
+        historicalKeywords,
+        clipType,
+      );
+    } catch (err) {
+      logger.warn(
+        { err },
+        "[historical-context] query failed, continuing without history",
+      );
+      historicalContext = "";
+    }
+
+    const trailingInstruction = historicalContext
+      ? "Analyze the YouTube data directly. Then search Instagram, TikTok, LinkedIn, and Twitter using site: operators for competitive data on those platforms. After collecting fresh findings, compare them against the HISTORICAL COMPETITIVE INTELLIGENCE block above and note where fresh results confirm or contradict prior patterns."
+      : "Analyze the YouTube data directly. Then search Instagram, TikTok, LinkedIn, and Twitter using site: operators for competitive data on those platforms.";
+
+    const researchUserMessage = `${historicalContext}CLIP TRANSCRIPT:\n${clipTranscript}\n\nYOUTUBE DATA (real API data with actual view counts and tags):\n${formattedYoutubeData}\n\n${trailingInstruction}`;
 
     const researchOutput = await callAgentWithSearch(
       RESEARCH_ANALYST_PROMPT,

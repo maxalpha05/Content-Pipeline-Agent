@@ -8,6 +8,7 @@ import {
   useDeleteEpisode,
   useDeletePipelineRun,
   useCreatePipelineRun,
+  useDiscoverClips,
   CreatePipelineRunBodyClipType,
   CreatePipelineRunBodyType,
   EpisodeRunCard,
@@ -24,7 +25,7 @@ import { format } from "date-fns";
 import {
   ArrowLeft, MoreHorizontal, Archive, Trash2, FileEdit, FileText,
   Video, Clock, AlertCircle, CheckCircle2, PlayCircle, Loader2,
-  Copy, Check, Rocket, ChevronRight,
+  Copy, Check, Rocket, ChevronRight, Search, ChevronDown, ChevronUp, RefreshCw,
 } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -87,6 +88,125 @@ function RunStatusIcon({ status }: { status: string }) {
 }
 
 
+interface ParsedDiscoveryClip {
+  number: number;
+  insight: string;
+  linesLabel: string | null;
+  wordCount: string | null;
+  durationLabel: string | null;
+  clipType: "vertical" | "horizontal";
+  clipTypeRaw: string;
+  hookRating: string | null;
+  valueRating: string | null;
+  closeRating: string | null;
+  surgeryNotes: string | null;
+  topicKeywords: string | null;
+  transcriptSegment: string;
+}
+
+function extractRating(block: string, label: string): string | null {
+  const re = new RegExp(
+    `\\*\\*${label} assessment:\\*\\*[\\s\\S]*?\\b(STRONG|NEEDS WORK)\\b`,
+    "i",
+  );
+  const m = block.match(re);
+  return m ? m[1].toUpperCase() : null;
+}
+
+function extractField(block: string, label: string): string | null {
+  const re = new RegExp(`\\*\\*${label}:\\*\\*\\s*([^\\n]+)`, "i");
+  const m = block.match(re);
+  return m ? m[1].trim() : null;
+}
+
+function extractMultilineField(block: string, label: string): string | null {
+  const re = new RegExp(
+    `\\*\\*${label}:\\*\\*\\s*\\n?([\\s\\S]*?)(?=\\n\\*\\*|\\n\`\`\`|$)`,
+    "i",
+  );
+  const m = block.match(re);
+  return m ? m[1].trim() : null;
+}
+
+function parseDiscoveryOutput(raw: string): {
+  clips: ParsedDiscoveryClip[];
+  summary: string | null;
+} {
+  if (!raw || !raw.trim()) return { clips: [], summary: null };
+
+  const summaryMatch = raw.match(/##\s*DISCOVERY SUMMARY[\s\S]*$/i);
+  const summary = summaryMatch ? summaryMatch[0].trim() : null;
+  const beforeSummary = summary ? raw.slice(0, raw.indexOf(summary)) : raw;
+
+  const clipSplit = beforeSummary.split(/\n(?=##\s*CLIP\s+\d+)/);
+  const clips: ParsedDiscoveryClip[] = [];
+
+  for (const block of clipSplit) {
+    const header = block.match(/^##\s*CLIP\s+(\d+):\s*(.+)/i);
+    if (!header) continue;
+    const number = parseInt(header[1], 10);
+    const insight = header[2].trim();
+
+    const lines = extractField(block, "Lines");
+    const duration = extractField(block, "Estimated duration");
+    const clipTypeRaw = extractField(block, "Clip type") ?? "";
+    const topicKw = extractField(block, "Topic keywords");
+    const surgery = extractMultilineField(block, "Surgery notes");
+
+    let wordCount: string | null = null;
+    let durationLabel: string | null = null;
+    if (duration) {
+      const wm = duration.match(/(\d+)\s*words?/i);
+      if (wm) wordCount = `${wm[1]} words`;
+      const dm = duration.match(/(~?\s*\d+\s*sec(?:ond)?s?)/i);
+      if (dm) durationLabel = dm[1].replace(/\s+/g, " ").trim();
+    }
+
+    const clipType: "vertical" | "horizontal" = /horizontal/i.test(clipTypeRaw)
+      ? "horizontal"
+      : "vertical";
+
+    const tsMatch = block.match(
+      /\*\*Transcript segment:\*\*\s*\n```\s*\n?([\s\S]*?)\n?```/i,
+    );
+    const transcriptSegment = tsMatch ? tsMatch[1].trim() : "";
+
+    clips.push({
+      number,
+      insight,
+      linesLabel: lines,
+      wordCount,
+      durationLabel,
+      clipType,
+      clipTypeRaw,
+      hookRating: extractRating(block, "Hook"),
+      valueRating: extractRating(block, "Value"),
+      closeRating: extractRating(block, "Close"),
+      surgeryNotes: surgery,
+      topicKeywords: topicKw,
+      transcriptSegment,
+    });
+  }
+
+  return { clips, summary };
+}
+
+function RatingBadge({ label, rating }: { label: string; rating: string | null }) {
+  if (!rating) return null;
+  const strong = rating === "STRONG";
+  return (
+    <span
+      className={`text-xs px-1.5 py-0.5 rounded ${
+        strong
+          ? "bg-emerald-500/10 text-emerald-700 border border-emerald-200"
+          : "bg-amber-500/10 text-amber-700 border border-amber-200"
+      }`}
+    >
+      {label}: {strong ? "Strong" : "Needs work"}
+    </span>
+  );
+}
+
 function PlatformCard({ label, content, maxChars }: { label: string; content: string; maxChars?: number }) {
   if (!content) return null;
   const charCount = content.length;
@@ -122,6 +242,7 @@ export default function EpisodeWorkspace() {
   const deleteEpisode = useDeleteEpisode();
   const deleteRun = useDeletePipelineRun();
   const createRun = useCreatePipelineRun();
+  const discoverClips = useDiscoverClips();
 
   const { data: episode, isLoading, isError } = useGetEpisode(episodeId);
 
@@ -138,6 +259,9 @@ export default function EpisodeWorkspace() {
 
   const [fullEpisodeRunning, setFullEpisodeRunning] = useState(false);
   const [fullEpisodeStage, setFullEpisodeStage] = useState<string>("");
+
+  const [expandedClipIdx, setExpandedClipIdx] = useState<number | null>(null);
+  const [suggestedKeywords, setSuggestedKeywords] = useState<string | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(search);
@@ -260,6 +384,7 @@ export default function EpisodeWorkspace() {
             : CreatePipelineRunBodyClipType.horizontal,
           clipTranscript: clipTranscript.trim(),
           episodeId,
+          ...(suggestedKeywords ? { suggestedTopicKeywords: suggestedKeywords } : {}),
         },
       },
       {
@@ -272,6 +397,35 @@ export default function EpisodeWorkspace() {
         },
       }
     );
+  }
+
+  function handleDiscoverClips() {
+    discoverClips.mutate(
+      { id: episodeId },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getGetEpisodeQueryKey(episodeId) });
+          toast({ title: "Discovery complete" });
+        },
+        onError: () => {
+          toast({
+            title: "Discovery failed",
+            description: "Could not scan the transcript. Please try again.",
+            variant: "destructive",
+          });
+        },
+      },
+    );
+  }
+
+  function handleAnalyzeDiscoveredClip(clip: ParsedDiscoveryClip) {
+    setClipType(clip.clipType);
+    setClipTranscript(clip.transcriptSegment);
+    setSuggestedKeywords(clip.topicKeywords || null);
+    setClipError("");
+    setTimeout(() => {
+      clipFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
   }
 
   async function handleRunFullEpisode() {
@@ -394,6 +548,199 @@ export default function EpisodeWorkspace() {
           </div>
         </div>
 
+        {/* Section: Clip Discovery */}
+        {(() => {
+          const { clips: discoveryClips, summary: discoverySummary } =
+            parseDiscoveryOutput(episode.discoveryOutput || "");
+          const isDiscovering = discoverClips.isPending;
+          const hasDiscovery = !!episode.discoveryOutput;
+
+          if (isDiscovering) {
+            return (
+              <Card className="shadow-sm border-border/50">
+                <CardContent className="p-8 flex flex-col items-center text-center">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary mb-3" />
+                  <h3 className="font-medium text-sm mb-1">
+                    Scanning transcript for clip-worthy moments...
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    This usually takes 30-60 seconds.
+                  </p>
+                </CardContent>
+              </Card>
+            );
+          }
+
+          if (!hasDiscovery) {
+            return (
+              <Card className="shadow-sm border-border/50 border-dashed">
+                <CardContent className="p-6 flex flex-col sm:flex-row sm:items-center gap-4">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <Search className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium text-sm mb-0.5">Discover Clips</h3>
+                    <p className="text-xs text-muted-foreground">
+                      Scan the full transcript to find the 4-6 strongest clip-worthy moments.
+                    </p>
+                  </div>
+                  <Button onClick={handleDiscoverClips} className="gap-2 shrink-0">
+                    <Search className="h-4 w-4" />
+                    Discover Clips
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          }
+
+          return (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
+                  <Search className="h-4 w-4 text-primary" />
+                  Discovered Clip Moments
+                  {discoveryClips.length > 0 && (
+                    <span className="text-xs text-muted-foreground font-normal">
+                      ({discoveryClips.length})
+                    </span>
+                  )}
+                </h2>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 text-xs"
+                  onClick={handleDiscoverClips}
+                  disabled={discoverClips.isPending}
+                >
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  Re-discover
+                </Button>
+              </div>
+
+              {discoveryClips.length === 0 ? (
+                <Card className="border-border/50 shadow-sm">
+                  <CardContent className="p-4">
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Could not parse structured clips from the discovery output. Showing raw text:
+                    </p>
+                    <pre className="text-xs whitespace-pre-wrap font-mono text-foreground/80 max-h-[300px] overflow-y-auto">
+                      {episode.discoveryOutput}
+                    </pre>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-2">
+                  {discoveryClips.map((clip, idx) => {
+                    const isExpanded = expandedClipIdx === idx;
+                    return (
+                      <Card key={idx} className="border-border/50 shadow-sm">
+                        <CardContent className="p-4 space-y-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="text-xs font-mono text-muted-foreground mb-0.5">
+                                CLIP {clip.number}
+                              </div>
+                              <h3 className="font-medium text-sm text-foreground leading-snug">
+                                {clip.insight}
+                              </h3>
+                            </div>
+                            <span className="text-xs uppercase tracking-wide px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 shrink-0">
+                              {clip.clipType}
+                            </span>
+                          </div>
+
+                          <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                            {clip.linesLabel && <span>Lines {clip.linesLabel}</span>}
+                            {clip.wordCount && <span>· {clip.wordCount}</span>}
+                            {clip.durationLabel && <span>· {clip.durationLabel}</span>}
+                          </div>
+
+                          <div className="flex flex-wrap gap-1.5">
+                            <RatingBadge label="Hook" rating={clip.hookRating} />
+                            <RatingBadge label="Value" rating={clip.valueRating} />
+                            <RatingBadge label="Close" rating={clip.closeRating} />
+                          </div>
+
+                          {clip.transcriptSegment && !isExpanded && (
+                            <p className="text-xs text-foreground/70 font-mono line-clamp-2 leading-relaxed">
+                              {clip.transcriptSegment.split("\n").slice(0, 2).join(" ")}
+                            </p>
+                          )}
+
+                          {isExpanded && (
+                            <div className="space-y-3 pt-1">
+                              {clip.surgeryNotes && (
+                                <div>
+                                  <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                                    Surgery Notes
+                                  </div>
+                                  <p className="text-xs text-foreground/80 whitespace-pre-wrap leading-relaxed">
+                                    {clip.surgeryNotes}
+                                  </p>
+                                </div>
+                              )}
+                              {clip.topicKeywords && (
+                                <div>
+                                  <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                                    Topic Keywords
+                                  </div>
+                                  <p className="text-xs text-foreground/80">{clip.topicKeywords}</p>
+                                </div>
+                              )}
+                              <div>
+                                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                                  Full Transcript Segment
+                                </div>
+                                <pre className="text-xs whitespace-pre-wrap font-mono bg-muted/40 rounded p-3 max-h-[280px] overflow-y-auto border border-border/40 text-foreground/90 leading-relaxed">
+                                  {clip.transcriptSegment}
+                                </pre>
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 text-xs gap-1.5"
+                              onClick={() => setExpandedClipIdx(isExpanded ? null : idx)}
+                            >
+                              {isExpanded ? (
+                                <><ChevronUp className="h-3 w-3" /> Hide segment</>
+                              ) : (
+                                <><ChevronDown className="h-3 w-3" /> View full segment</>
+                              )}
+                            </Button>
+                            <Button
+                              size="sm"
+                              className="h-7 text-xs gap-1.5"
+                              onClick={() => handleAnalyzeDiscoveredClip(clip)}
+                              disabled={!clip.transcriptSegment}
+                            >
+                              <Rocket className="h-3 w-3" />
+                              Analyze This Clip
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+
+              {discoverySummary && (
+                <Card className="border-border/50 shadow-sm bg-muted/20">
+                  <CardContent className="p-4">
+                    <pre className="text-xs whitespace-pre-wrap font-sans text-foreground/80 leading-relaxed">
+                      {discoverySummary}
+                    </pre>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          );
+        })()}
+
         {/* Section A: Clip Input */}
         <div ref={clipFormRef}>
         <Card className="shadow-sm border-border/50">
@@ -443,6 +790,7 @@ export default function EpisodeWorkspace() {
                 onChange={(e) => {
                   setClipTranscript(e.target.value);
                   if (clipError) setClipError("");
+                  if (suggestedKeywords) setSuggestedKeywords(null);
                 }}
               />
               {clipError && <p className="text-sm text-destructive">{clipError}</p>}

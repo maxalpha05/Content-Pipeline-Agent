@@ -16,6 +16,7 @@ export const episodesTable = pgTable("episodes", {
   youtubeDescription: text("youtube_description"),
   youtubeTags: text("youtube_tags"),
   titleVariations: text("title_variations"),
+  discoveryOutput: text("discovery_output"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

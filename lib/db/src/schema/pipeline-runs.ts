@@ -21,6 +21,7 @@ export const pipelineRunsTable = pgTable("pipeline_runs", {
   youtubeData: text("youtube_data"),
   researchOutput: text("research_output"),
   surgeryOutput: text("surgery_output"),
+  suggestedTopicKeywords: text("suggested_topic_keywords"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

@@ -234,7 +234,12 @@ export async function runClipPipeline(
   clipTranscript: string,
   clipType: string,
   res: Response,
+  suggestedTopicKeywords?: string,
 ): Promise<void> {
+  const overrideKeywords =
+    suggestedTopicKeywords && suggestedTopicKeywords.trim().length > 0
+      ? suggestedTopicKeywords.trim()
+      : null;
   const sendEvent: SendEvent = (data) => {
     try {
       res.write(`data: ${JSON.stringify(data)}\n\n`);
@@ -260,8 +265,11 @@ export async function runClipPipeline(
     const apiKey = process.env.YOUTUBE_API_KEY;
     logger.info({ apiKeyPresent: !!apiKey, apiKeyLength: apiKey?.length ?? 0 }, "[YouTube] env var check");
     if (apiKey) {
-      const keywords = extractTopicKeywords(clipTranscript);
-      logger.info({ keywords }, "[YouTube] extracted keywords");
+      const keywords = overrideKeywords ?? extractTopicKeywords(clipTranscript);
+      logger.info(
+        { keywords, source: overrideKeywords ? "discovery-suggested" : "extracted" },
+        "[YouTube] keywords",
+      );
 
       // Try with topic keywords + "marketing" (most clips are marketing-related)
       let youtubeResults = await searchYouTubeShorts(apiKey, `${keywords} marketing`);
@@ -298,7 +306,8 @@ export async function runClipPipeline(
 
     let historicalContext = "";
     try {
-      const historicalKeywords = extractTopicKeywords(clipTranscript);
+      const historicalKeywords =
+        overrideKeywords ?? extractTopicKeywords(clipTranscript);
       historicalContext = await getHistoricalContext(
         historicalKeywords,
         clipType,

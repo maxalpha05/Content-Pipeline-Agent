@@ -32,6 +32,7 @@ export const ListEpisodesResponseItem = zod.object({
   youtubeDescription: zod.string().nullish(),
   youtubeTags: zod.string().nullish(),
   titleVariations: zod.string().nullish(),
+  discoveryOutput: zod.string().nullish(),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
 });
@@ -70,6 +71,7 @@ export const GetEpisodeResponse = zod
     youtubeDescription: zod.string().nullish(),
     youtubeTags: zod.string().nullish(),
     titleVariations: zod.string().nullish(),
+    discoveryOutput: zod.string().nullish(),
     createdAt: zod.coerce.date(),
     updatedAt: zod.coerce.date(),
   })
@@ -124,6 +126,7 @@ export const UpdateEpisodeResponse = zod.object({
   youtubeDescription: zod.string().nullish(),
   youtubeTags: zod.string().nullish(),
   titleVariations: zod.string().nullish(),
+  discoveryOutput: zod.string().nullish(),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
 });
@@ -133,6 +136,18 @@ export const UpdateEpisodeResponse = zod.object({
  */
 export const DeleteEpisodeParams = zod.object({
   id: zod.coerce.number(),
+});
+
+/**
+ * @summary Scan the full transcript and return 4-6 recommended clip-worthy moments
+ */
+export const DiscoverClipsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DiscoverClipsResponse = zod.object({
+  episodeId: zod.number(),
+  discoveryOutput: zod.string(),
 });
 
 /**
@@ -185,6 +200,12 @@ export const CreatePipelineRunBody = zod.object({
     .optional()
     .describe(
       "When provided, the episode's stored transcript is used and clip_count is incremented.",
+    ),
+  suggestedTopicKeywords: zod
+    .string()
+    .optional()
+    .describe(
+      "Optional. When provided (e.g. from Clip Discovery), bypasses keyword extraction for YouTube search and historical-context lookup. Empty or omitted preserves prior behavior.",
     ),
 });
 

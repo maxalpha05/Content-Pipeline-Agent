@@ -1,7 +1,10 @@
 import { Router, type IRouter } from "express";
 import { eq, desc, sql } from "drizzle-orm";
+import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { db, episodesTable, pipelineRunsTable } from "@workspace/db";
 import { runEpisodePipeline } from "../../lib/pipeline/orchestrator";
+import { CLIP_DISCOVERY_PROMPT } from "../../lib/pipeline/prompts";
+import { getHistoricalContext } from "../../lib/competitive-intel/historical-context";
 
 const SECTION_LABELS = [
   "SUBSTACK ARTICLE",
@@ -239,6 +242,68 @@ router.post("/episodes/:id/full-episode", async (req, res): Promise<void> => {
   }
 
   res.end();
+});
+
+router.post("/episodes/:id/discover-clips", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Invalid episode id" });
+    return;
+  }
+
+  const [episode] = await db
+    .select()
+    .from(episodesTable)
+    .where(eq(episodesTable.id, id));
+
+  if (!episode) {
+    res.status(404).json({ error: "Episode not found" });
+    return;
+  }
+
+  let historicalContext = "";
+  try {
+    // Pull whatever historical context is available across both clip orientations.
+    // Discovery runs episode-level, so it doesn't know clipType yet — use the larger pool.
+    const verticalCtx = await getHistoricalContext("", "vertical");
+    const horizontalCtx = await getHistoricalContext("", "horizontal");
+    historicalContext = verticalCtx || horizontalCtx || "";
+  } catch (err) {
+    req.log.warn({ err }, "[discover-clips] historical-context query failed");
+    historicalContext = "";
+  }
+
+  const userMessage = `${historicalContext}FULL EPISODE TRANSCRIPT:\n${episode.fullTranscript}\n\nScan this transcript and identify the 4-6 strongest clip-worthy moments.`;
+
+  let discoveryOutput = "";
+  try {
+    const stream = anthropic.messages.stream({
+      model: "claude-sonnet-4-6",
+      max_tokens: 4096,
+      system: CLIP_DISCOVERY_PROMPT,
+      messages: [{ role: "user", content: userMessage }],
+    });
+
+    for await (const event of stream) {
+      if (
+        event.type === "content_block_delta" &&
+        event.delta.type === "text_delta"
+      ) {
+        discoveryOutput += event.delta.text;
+      }
+    }
+  } catch (err) {
+    req.log.error({ err, episodeId: id }, "[discover-clips] Claude call failed");
+    res.status(500).json({ error: "Clip discovery failed" });
+    return;
+  }
+
+  await db
+    .update(episodesTable)
+    .set({ discoveryOutput, updatedAt: new Date() })
+    .where(eq(episodesTable.id, id));
+
+  res.json({ episodeId: id, discoveryOutput });
 });
 
 export default router;

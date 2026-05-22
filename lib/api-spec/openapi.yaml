@@ -133,6 +133,30 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PipelineError"
+  /episodes/{id}/discover-clips:
+    post:
+      operationId: discoverClips
+      tags: [episodes]
+      summary: Scan the full transcript and return 4-6 recommended clip-worthy moments
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Discovery output stored on the episode
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiscoverClipsResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PipelineError"
   /episodes/{id}/full-episode:
     post:
       operationId: runFullEpisode
@@ -455,6 +479,8 @@ components:
           type: ["string", "null"]
         titleVariations:
           type: ["string", "null"]
+        discoveryOutput:
+          type: ["string", "null"]
         createdAt:
           type: string
           format: date-time
@@ -639,6 +665,9 @@ components:
         episodeId:
           type: integer
           description: When provided, the episode's stored transcript is used and clip_count is incremented.
+        suggestedTopicKeywords:
+          type: string
+          description: Optional. When provided (e.g. from Clip Discovery), bypasses keyword extraction for YouTube search and historical-context lookup. Empty or omitted preserves prior behavior.
       required:
         - type
     SubmitFeedbackBody:
@@ -758,6 +787,16 @@ components:
       required:
         - userSelectedTitle
         - userSelectedTitleIndex
+    DiscoverClipsResponse:
+      type: object
+      properties:
+        episodeId:
+          type: integer
+        discoveryOutput:
+          type: string
+      required:
+        - episodeId
+        - discoveryOutput
     PipelineError:
       type: object
       properties:

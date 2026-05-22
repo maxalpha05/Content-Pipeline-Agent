@@ -42,7 +42,7 @@ router.post("/pipeline/runs", async (req, res): Promise<void> => {
     return;
   }
 
-  const { type, clipType, episodeTranscript: bodyTranscript, clipTranscript, episodeId } = parsed.data;
+  const { type, clipType, episodeTranscript: bodyTranscript, clipTranscript, episodeId, suggestedTopicKeywords } = parsed.data;
 
   if (type === "clip" && !clipTranscript) {
     res.status(400).json({ error: "Clip transcript is required for clip runs" });
@@ -86,6 +86,7 @@ router.post("/pipeline/runs", async (req, res): Promise<void> => {
       status: "pending",
       episodeTranscript: resolvedTranscript,
       clipTranscript: clipTranscript || null,
+      suggestedTopicKeywords: suggestedTopicKeywords || null,
     })
     .returning();
 
@@ -196,6 +197,7 @@ router.get("/pipeline/runs/:id/stream", async (req, res): Promise<void> => {
       run.clipTranscript || "",
       run.clipType || "vertical",
       res,
+      run.suggestedTopicKeywords || undefined,
     );
   }
 

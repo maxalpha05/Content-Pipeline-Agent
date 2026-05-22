@@ -15,4 +15,6 @@ export interface CreatePipelineRunBody {
   clipTranscript?: string;
   /** When provided, the episode's stored transcript is used and clip_count is incremented. */
   episodeId?: number;
+  /** Optional. When provided (e.g. from Clip Discovery), bypasses keyword extraction for YouTube search and historical-context lookup. Empty or omitted preserves prior behavior. */
+  suggestedTopicKeywords?: string;
 }

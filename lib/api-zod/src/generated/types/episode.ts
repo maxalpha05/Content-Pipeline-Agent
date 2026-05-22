@@ -28,6 +28,8 @@ export interface Episode {
   youtubeTags?: string | null;
   /** @nullable */
   titleVariations?: string | null;
+  /** @nullable */
+  discoveryOutput?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

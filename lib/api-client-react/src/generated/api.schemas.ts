@@ -37,6 +37,8 @@ export interface Episode {
   youtubeTags?: string | null;
   /** @nullable */
   titleVariations?: string | null;
+  /** @nullable */
+  discoveryOutput?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -230,6 +232,8 @@ export interface CreatePipelineRunBody {
   clipTranscript?: string;
   /** When provided, the episode's stored transcript is used and clip_count is incremented. */
   episodeId?: number;
+  /** Optional. When provided (e.g. from Clip Discovery), bypasses keyword extraction for YouTube search and historical-context lookup. Empty or omitted preserves prior behavior. */
+  suggestedTopicKeywords?: string;
 }
 
 export interface SubmitFeedbackBody {
@@ -303,6 +307,11 @@ export interface CompetitiveIntelligenceCluster {
 export interface UpdateCompetitiveIntelligenceTitleBody {
   userSelectedTitle: string;
   userSelectedTitleIndex: number;
+}
+
+export interface DiscoverClipsResponse {
+  episodeId: number;
+  discoveryOutput: string;
 }
 
 export interface PipelineError {

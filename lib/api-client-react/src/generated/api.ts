@@ -21,6 +21,7 @@ import type {
   CompetitiveIntelligenceCluster,
   CreateEpisodeBody,
   CreatePipelineRunBody,
+  DiscoverClipsResponse,
   Episode,
   EpisodeDetail,
   HealthStatus,
@@ -538,6 +539,90 @@ export const useDeleteEpisode = <
   TContext
 > => {
   return useMutation(getDeleteEpisodeMutationOptions(options));
+};
+
+/**
+ * @summary Scan the full transcript and return 4-6 recommended clip-worthy moments
+ */
+export const getDiscoverClipsUrl = (id: number) => {
+  return `/api/episodes/${id}/discover-clips`;
+};
+
+export const discoverClips = async (
+  id: number,
+  options?: RequestInit,
+): Promise<DiscoverClipsResponse> => {
+  return customFetch<DiscoverClipsResponse>(getDiscoverClipsUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getDiscoverClipsMutationOptions = <
+  TError = ErrorType<PipelineError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof discoverClips>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof discoverClips>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["discoverClips"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof discoverClips>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return discoverClips(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DiscoverClipsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof discoverClips>>
+>;
+
+export type DiscoverClipsMutationError = ErrorType<PipelineError>;
+
+/**
+ * @summary Scan the full transcript and return 4-6 recommended clip-worthy moments
+ */
+export const useDiscoverClips = <
+  TError = ErrorType<PipelineError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof discoverClips>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof discoverClips>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDiscoverClipsMutationOptions(options));
 };
 
 /**

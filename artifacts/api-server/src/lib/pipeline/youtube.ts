@@ -106,22 +106,7 @@ export function formatYouTubeData(results: YouTubeShort[]): string {
     .join("\n\n");
 }
 
-export function extractTopicKeywords(clipText: string): string {
-  // Strip metadata label lines (e.g. "Talia Wolf | Getuplift (00:00)")
-  // These contain guest names and company names that pollute the keyword query.
-  const lines = clipText.split("\n");
-  const contentLines = lines.filter((line) => {
-    const trimmed = line.trim();
-    // Skip lines that look like guest/timestamp labels
-    if (trimmed.includes("|")) return false;
-    if (/\(\d{2}:\d{2}\)/.test(trimmed)) return false;
-    // Skip lines that look like "Speaker N:" prefixes
-    if (/^Speaker\s*\d+\s*:/i.test(trimmed)) return false;
-    return true;
-  });
-  const content = contentLines.join(" ");
-
-  const stopwords = new Set([
+const KEYWORD_STOPWORDS = new Set([
     "that", "this", "with", "from", "have", "been", "they", "their", "them",
     "what", "when", "where", "which", "will", "would", "could", "should",
     "about", "after", "before", "between", "through", "during", "also",
@@ -133,25 +118,93 @@ export function extractTopicKeywords(clipText: string): string {
     "there", "these", "those", "here", "even", "every", "being", "using",
     "things", "thing", "kind", "ways", "means", "look", "looks", "feel",
     "start", "stop", "says", "talk", "talking", "tell", "told",
-  ]);
+]);
 
+function stripMetadataLines(clipText: string): string {
+  const lines = clipText.split("\n");
+  const contentLines = lines.filter((line) => {
+    const trimmed = line.trim();
+    if (trimmed.includes("|")) return false;
+    if (/\(\d{2}:\d{2}\)/.test(trimmed)) return false;
+    if (/^Speaker\s*\d+\s*:/i.test(trimmed)) return false;
+    return true;
+  });
+  return contentLines.join(" ");
+}
+
+function topKeywordsFromText(content: string, limit: number): string[] {
   const words = content
     .toLowerCase()
     .replace(/[^a-z\s]/g, "")
     .split(/\s+/)
-    .filter((w) => w.length > 4 && !stopwords.has(w));
+    .filter((w) => w.length > 4 && !KEYWORD_STOPWORDS.has(w));
 
   const freq: Record<string, number> = {};
   words.forEach((w) => {
     freq[w] = (freq[w] || 0) + 1;
   });
 
-  const keywords = Object.entries(freq)
+  return Object.entries(freq)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-    .map((e) => e[0])
-    .join(" ");
+    .slice(0, limit)
+    .map((e) => e[0]);
+}
 
+export function extractTopicKeywords(clipText: string): string {
+  // Strip metadata label lines (e.g. "Talia Wolf | Getuplift (00:00)")
+  // These contain guest names and company names that pollute the keyword query.
+  const content = stripMetadataLines(clipText);
+  const keywords = topKeywordsFromText(content, 5).join(" ");
   console.log("[YouTube] extracted keywords:", keywords);
   return keywords || "marketing growth strategy";
+}
+
+/**
+ * Split a long transcript into N roughly equal-sized segments and extract the
+ * top keywords from each one independently. Useful when a single full-transcript
+ * keyword bag becomes too generic ("growth", "people", "company") because the
+ * episode covers multiple distinct topics. Per-segment extraction preserves the
+ * topic clusters within the episode so downstream historical-context matching
+ * can hit each cluster instead of averaging them away.
+ *
+ * Returns an array of keyword strings (space-joined per segment). Empty
+ * segments are dropped. If no segments produce keywords, returns a single
+ * fallback derived from the full transcript.
+ */
+export function extractTopicKeywordSegments(
+  clipText: string,
+  numSegments = 4,
+  keywordsPerSegment = 4,
+): string[] {
+  const content = stripMetadataLines(clipText).trim();
+  if (!content) return [extractTopicKeywords(clipText)];
+
+  const totalLen = content.length;
+  // For short transcripts, per-segment slicing produces near-duplicate keyword
+  // sets, so fall back to a single bag.
+  if (numSegments <= 1 || totalLen < 2000) {
+    return [extractTopicKeywords(clipText)];
+  }
+
+  const segments: string[] = [];
+  const segLen = Math.ceil(totalLen / numSegments);
+  for (let i = 0; i < numSegments; i++) {
+    const start = i * segLen;
+    if (start >= totalLen) break;
+    segments.push(content.slice(start, start + segLen));
+  }
+
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const seg of segments) {
+    const kws = topKeywordsFromText(seg, keywordsPerSegment).join(" ");
+    if (!kws) continue;
+    if (seen.has(kws)) continue;
+    seen.add(kws);
+    out.push(kws);
+  }
+
+  if (out.length === 0) return [extractTopicKeywords(clipText)];
+  console.log("[YouTube] extracted segment keywords:", out);
+  return out;
 }

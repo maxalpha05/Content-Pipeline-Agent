@@ -43,18 +43,42 @@ function scoreRelevance(
 
   const cluster = (record.topicCluster ?? "").toLowerCase().trim();
   if (cluster) {
-    let clusterKeywordHit = false;
-    for (const w of current) {
-      if (cluster.includes(w)) {
-        clusterKeywordHit = true;
-        break;
-      }
-    }
-    if (clusterKeywordHit) score += 3;
+    const clusterTokens = new Set(
+      cluster.split(/[\s\-_/,]+/).filter((t) => t.length > 0),
+    );
+    let clusterTokenOverlap = 0;
+    for (const w of current) if (clusterTokens.has(w)) clusterTokenOverlap++;
+    // Topic-cluster token overlap is a much stronger signal than raw keyword
+    // overlap, because clusters are curated topic labels rather than
+    // frequency-derived noise. Weight each cluster hit at 4 points.
+    score += clusterTokenOverlap * 4;
     if (cluster === currentKeywords.toLowerCase().trim()) score += 5;
   }
 
   return score;
+}
+
+/**
+ * Score a record against multiple keyword sets (per-segment keywords from a
+ * long, multi-topic transcript). The record's relevance is the MAX score over
+ * any individual segment — so a record about "onboarding" that matches one
+ * segment of an episode strongly is not penalised by other segments that talk
+ * about pricing. A small bonus is added when the record matches multiple
+ * segments, since that suggests the record's topic recurs across the episode.
+ */
+function scoreRelevanceMulti(
+  keywordSets: string[],
+  record: CompetitiveIntelligence,
+): number {
+  let best = 0;
+  let segmentsHit = 0;
+  for (const kws of keywordSets) {
+    const s = scoreRelevance(kws, record);
+    if (s >= 3) segmentsHit++;
+    if (s > best) best = s;
+  }
+  if (segmentsHit > 1) best += (segmentsHit - 1) * 2;
+  return best;
 }
 
 function formatViews(n: number): string {
@@ -96,10 +120,15 @@ function parseMustIncludeTags(constraints: string): string[] {
 }
 
 export async function getHistoricalContext(
-  topicKeywords: string,
+  topicKeywords: string | string[],
   clipType: string,
 ): Promise<string> {
-  if (!topicKeywords || !topicKeywords.trim()) return "";
+  const keywordSets: string[] = (
+    Array.isArray(topicKeywords) ? topicKeywords : [topicKeywords]
+  )
+    .map((k) => (k || "").trim())
+    .filter((k) => k.length > 0);
+  if (keywordSets.length === 0) return "";
 
   const candidates = await db
     .select()
@@ -122,7 +151,7 @@ export async function getHistoricalContext(
   const scored: ScoredRecord[] = candidates
     .map((record) => ({
       record,
-      relevance: scoreRelevance(topicKeywords, record),
+      relevance: scoreRelevanceMulti(keywordSets, record),
       shorts: parseShorts(record.youtubeShorts),
     }))
     .filter((s) => s.relevance >= 3)

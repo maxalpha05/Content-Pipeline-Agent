@@ -5,7 +5,10 @@ import { db, episodesTable, pipelineRunsTable } from "@workspace/db";
 import { runEpisodePipeline } from "../../lib/pipeline/orchestrator";
 import { CLIP_DISCOVERY_PROMPT } from "../../lib/pipeline/prompts";
 import { getHistoricalContext } from "../../lib/competitive-intel/historical-context";
-import { extractTopicKeywords } from "../../lib/pipeline/youtube";
+import {
+  extractTopicKeywords,
+  extractTopicKeywordSegments,
+} from "../../lib/pipeline/youtube";
 
 const SECTION_LABELS = [
   "SUBSTACK ARTICLE",
@@ -276,10 +279,23 @@ router.post("/episodes/:id/discover-clips", async (req, res): Promise<void> => {
     // Both blocks are concatenated (with labels) so the agent can weight vertical
     // vs horizontal recommendations against the patterns that have actually worked
     // for each format historically.
-    const episodeKeywords = extractTopicKeywords(episode.fullTranscript);
+    // Long, multi-topic transcripts produce noisy ("growth", "people",
+    // "company") keyword bags when summed over the entire transcript, which
+    // washes out the actual topic clusters. Extract keywords per segment so
+    // each topic cluster in the episode can match historical runs on its own
+    // merits — the matcher takes the max relevance over segments and boosts
+    // records that hit multiple segments. We also keep the full-transcript
+    // bag in the mix so single-topic episodes still match cleanly.
+    const segmentKeywords = extractTopicKeywordSegments(
+      episode.fullTranscript,
+    );
+    const fullEpisodeKeywords = extractTopicKeywords(episode.fullTranscript);
+    const keywordSets = Array.from(
+      new Set([...segmentKeywords, fullEpisodeKeywords].filter(Boolean)),
+    );
     const [verticalCtx, horizontalCtx] = await Promise.all([
-      getHistoricalContext(episodeKeywords, "vertical"),
-      getHistoricalContext(episodeKeywords, "horizontal"),
+      getHistoricalContext(keywordSets, "vertical"),
+      getHistoricalContext(keywordSets, "horizontal"),
     ]);
     const blocks: string[] = [];
     if (verticalCtx) {

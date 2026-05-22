@@ -398,6 +398,91 @@ export const UpdateCompetitiveIntelligenceTitleSignalResponse = zod.object({
 });
 
 /**
+ * @summary Get prior creative constraint rows and aggregated patterns
+ */
+export const getConstraintHistoryQueryLimitDefault = 20;
+
+export const GetConstraintHistoryQueryParams = zod.object({
+  episodeId: zod.coerce
+    .number()
+    .optional()
+    .describe("Optionally scope history to a specific episode."),
+  topic: zod.coerce
+    .string()
+    .optional()
+    .describe(
+      "Space-separated topic keywords; rows whose topic_keywords share any token are included.",
+    ),
+  limit: zod.coerce.number().default(getConstraintHistoryQueryLimitDefault),
+  clipType: zod.enum(["vertical", "horizontal"]).optional(),
+});
+
+export const GetConstraintHistoryResponse = zod.object({
+  totalRuns: zod.number(),
+  rows: zod.array(
+    zod.object({
+      id: zod.number(),
+      pipelineRunId: zod.number(),
+      episodeId: zod.number().nullish(),
+      clipType: zod.string(),
+      topicKeywords: zod.string(),
+      createdAt: zod.coerce.date(),
+      titleVerbRule: zod.string().nullish(),
+      titleStatRule: zod.string().nullish(),
+      titleLengthRule: zod.string().nullish(),
+      titleFramingRule: zod.string().nullish(),
+      hookPattern: zod.string().nullish(),
+      hookFirstWords: zod.string().nullish(),
+      tagsMustInclude: zod.string().nullish(),
+      hashtagsMustInclude: zod.string().nullish(),
+      linkedinHookFormat: zod.string().nullish(),
+      twitterFormat: zod.string().nullish(),
+      finalTitle: zod.string().nullish(),
+      finalTags: zod.string().nullish(),
+      finalHashtags: zod.string().nullish(),
+    }),
+  ),
+  patterns: zod.object({
+    titleVerbRules: zod.array(
+      zod.object({
+        value: zod.string(),
+        count: zod.number(),
+      }),
+    ),
+    titleFramingRules: zod.array(
+      zod.object({
+        value: zod.string(),
+        count: zod.number(),
+      }),
+    ),
+    hookPatterns: zod.array(
+      zod.object({
+        value: zod.string(),
+        count: zod.number(),
+      }),
+    ),
+    topTags: zod.array(
+      zod.object({
+        value: zod.string(),
+        count: zod.number(),
+      }),
+    ),
+    topHashtags: zod.array(
+      zod.object({
+        value: zod.string(),
+        count: zod.number(),
+      }),
+    ),
+    linkedinHookFormats: zod.array(
+      zod.object({
+        value: zod.string(),
+        count: zod.number(),
+      }),
+    ),
+  }),
+});
+
+/**
  * @summary Get dashboard summary stats
  */
 export const GetPipelineDashboardResponse = zod.object({

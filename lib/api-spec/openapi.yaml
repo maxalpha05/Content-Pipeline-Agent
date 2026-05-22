@@ -428,6 +428,43 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PipelineError"
+  /constraints/history:
+    get:
+      operationId: getConstraintHistory
+      tags: [pipeline]
+      summary: Get prior creative constraint rows and aggregated patterns
+      parameters:
+        - name: episodeId
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Optionally scope history to a specific episode.
+        - name: topic
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Space-separated topic keywords; rows whose topic_keywords share any token are included.
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+        - name: clipType
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [vertical, horizontal]
+      responses:
+        "200":
+          description: Constraint history with aggregated patterns
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConstraintHistory"
   /pipeline/dashboard:
     get:
       operationId: getPipelineDashboard
@@ -797,6 +834,111 @@ components:
       required:
         - episodeId
         - discoveryOutput
+    ConstraintRow:
+      type: object
+      properties:
+        id:
+          type: integer
+        pipelineRunId:
+          type: integer
+        episodeId:
+          type: ["integer", "null"]
+        clipType:
+          type: string
+        topicKeywords:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        titleVerbRule:
+          type: ["string", "null"]
+        titleStatRule:
+          type: ["string", "null"]
+        titleLengthRule:
+          type: ["string", "null"]
+        titleFramingRule:
+          type: ["string", "null"]
+        hookPattern:
+          type: ["string", "null"]
+        hookFirstWords:
+          type: ["string", "null"]
+        tagsMustInclude:
+          type: ["string", "null"]
+        hashtagsMustInclude:
+          type: ["string", "null"]
+        linkedinHookFormat:
+          type: ["string", "null"]
+        twitterFormat:
+          type: ["string", "null"]
+        finalTitle:
+          type: ["string", "null"]
+        finalTags:
+          type: ["string", "null"]
+        finalHashtags:
+          type: ["string", "null"]
+      required:
+        - id
+        - pipelineRunId
+        - clipType
+        - topicKeywords
+        - createdAt
+    PatternCount:
+      type: object
+      properties:
+        value:
+          type: string
+        count:
+          type: integer
+      required:
+        - value
+        - count
+    ConstraintHistory:
+      type: object
+      properties:
+        totalRuns:
+          type: integer
+        rows:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConstraintRow"
+        patterns:
+          type: object
+          properties:
+            titleVerbRules:
+              type: array
+              items:
+                $ref: "#/components/schemas/PatternCount"
+            titleFramingRules:
+              type: array
+              items:
+                $ref: "#/components/schemas/PatternCount"
+            hookPatterns:
+              type: array
+              items:
+                $ref: "#/components/schemas/PatternCount"
+            topTags:
+              type: array
+              items:
+                $ref: "#/components/schemas/PatternCount"
+            topHashtags:
+              type: array
+              items:
+                $ref: "#/components/schemas/PatternCount"
+            linkedinHookFormats:
+              type: array
+              items:
+                $ref: "#/components/schemas/PatternCount"
+          required:
+            - titleVerbRules
+            - titleFramingRules
+            - hookPatterns
+            - topTags
+            - topHashtags
+            - linkedinHookFormats
+      required:
+        - totalRuns
+        - rows
+        - patterns
     PipelineError:
       type: object
       properties:

@@ -9,10 +9,12 @@ import {
   useDeletePipelineRun,
   useCreatePipelineRun,
   useDiscoverClips,
+  useGetConstraintHistory,
   CreatePipelineRunBodyClipType,
   CreatePipelineRunBodyType,
   EpisodeRunCard,
 } from "@workspace/api-client-react";
+import ConstraintHistoryPanel from "@/components/ConstraintHistoryPanel";
 import { useQueryClient } from "@tanstack/react-query";
 import AppLayout from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -812,6 +814,9 @@ export default function EpisodeWorkspace() {
           </CardContent>
         </Card>
         </div>
+
+        {/* Constraint history — what's worked across past clips */}
+        <ConstraintHistoryPanel episodeId={episodeId} clipType={clipType} />
 
         {/* Section B: Previous Clip Runs */}
         <div className="space-y-3">

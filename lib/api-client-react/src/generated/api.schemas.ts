@@ -314,6 +314,62 @@ export interface DiscoverClipsResponse {
   discoveryOutput: string;
 }
 
+export interface ConstraintRow {
+  id: number;
+  pipelineRunId: number;
+  /** @nullable */
+  episodeId?: number | null;
+  clipType: string;
+  topicKeywords: string;
+  createdAt: string;
+  /** @nullable */
+  titleVerbRule?: string | null;
+  /** @nullable */
+  titleStatRule?: string | null;
+  /** @nullable */
+  titleLengthRule?: string | null;
+  /** @nullable */
+  titleFramingRule?: string | null;
+  /** @nullable */
+  hookPattern?: string | null;
+  /** @nullable */
+  hookFirstWords?: string | null;
+  /** @nullable */
+  tagsMustInclude?: string | null;
+  /** @nullable */
+  hashtagsMustInclude?: string | null;
+  /** @nullable */
+  linkedinHookFormat?: string | null;
+  /** @nullable */
+  twitterFormat?: string | null;
+  /** @nullable */
+  finalTitle?: string | null;
+  /** @nullable */
+  finalTags?: string | null;
+  /** @nullable */
+  finalHashtags?: string | null;
+}
+
+export interface PatternCount {
+  value: string;
+  count: number;
+}
+
+export type ConstraintHistoryPatterns = {
+  titleVerbRules: PatternCount[];
+  titleFramingRules: PatternCount[];
+  hookPatterns: PatternCount[];
+  topTags: PatternCount[];
+  topHashtags: PatternCount[];
+  linkedinHookFormats: PatternCount[];
+};
+
+export interface ConstraintHistory {
+  totalRuns: number;
+  rows: ConstraintRow[];
+  patterns: ConstraintHistoryPatterns;
+}
+
 export interface PipelineError {
   error: string;
 }
@@ -332,3 +388,24 @@ export type ListCompetitiveIntelligenceParams = {
 export type UpdateCompetitiveIntelligenceTitleSignal200 = {
   ok: boolean;
 };
+
+export type GetConstraintHistoryParams = {
+  /**
+   * Optionally scope history to a specific episode.
+   */
+  episodeId?: number;
+  /**
+   * Space-separated topic keywords; rows whose topic_keywords share any token are included.
+   */
+  topic?: string;
+  limit?: number;
+  clipType?: GetConstraintHistoryClipType;
+};
+
+export type GetConstraintHistoryClipType =
+  (typeof GetConstraintHistoryClipType)[keyof typeof GetConstraintHistoryClipType];
+
+export const GetConstraintHistoryClipType = {
+  vertical: "vertical",
+  horizontal: "horizontal",
+} as const;

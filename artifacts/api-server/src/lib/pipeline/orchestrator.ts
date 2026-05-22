@@ -28,6 +28,10 @@ import {
   formatYouTubeData,
   extractTopicKeywords,
 } from "./youtube";
+import {
+  fetchConstraintHistory,
+  formatHistoricalContext,
+} from "./constraint-history";
 import type { Response } from "express";
 
 type SendEvent = (data: Record<string, unknown>) => void;
@@ -320,11 +324,39 @@ export async function runClipPipeline(
       historicalContext = "";
     }
 
+    // Pull prior constraint patterns for similar topics so the Research
+    // Analyst can carry forward what has worked before (best-effort).
+    let constraintHistoryContext: string | null = null;
+    try {
+      const [run] = await db
+        .select()
+        .from(pipelineRunsTable)
+        .where(eq(pipelineRunsTable.id, runId));
+      const topicKeywords =
+        overrideKeywords ?? (extractTopicKeywords(clipTranscript) || "");
+      const history = await fetchConstraintHistory({
+        episodeId: run?.episodeId ?? undefined,
+        topic: topicKeywords,
+        clipType: clipType === "horizontal" ? "horizontal" : "vertical",
+        limit: 20,
+      });
+      constraintHistoryContext = formatHistoricalContext(history);
+      logger.info(
+        { totalRuns: history.totalRuns, hasContext: !!constraintHistoryContext },
+        "[ConstraintHistory] loaded for research analyst",
+      );
+    } catch (histErr) {
+      logger.warn(
+        { histErr },
+        "[ConstraintHistory] lookup failed — continuing without prior context",
+      );
+    }
+
     const trailingInstruction = historicalContext
       ? "Analyze the YouTube data directly. Then search Instagram, TikTok, LinkedIn, and Twitter using site: operators for competitive data on those platforms. After collecting fresh findings, compare them against the HISTORICAL COMPETITIVE INTELLIGENCE block above and note where fresh results confirm or contradict prior patterns."
       : "Analyze the YouTube data directly. Then search Instagram, TikTok, LinkedIn, and Twitter using site: operators for competitive data on those platforms.";
 
-    const researchUserMessage = `${historicalContext}CLIP TRANSCRIPT:\n${clipTranscript}\n\nYOUTUBE DATA (real API data with actual view counts and tags):\n${formattedYoutubeData}\n\n${trailingInstruction}`;
+    const researchUserMessage = `${historicalContext}CLIP TRANSCRIPT:\n${clipTranscript}\n\nYOUTUBE DATA (real API data with actual view counts and tags):\n${formattedYoutubeData}${constraintHistoryContext ? `\n\n${constraintHistoryContext}` : ""}\n\n${trailingInstruction}`;
 
     const researchOutput = await callAgentWithSearch(
       RESEARCH_ANALYST_PROMPT,

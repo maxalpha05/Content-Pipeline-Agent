@@ -8,6 +8,9 @@
 
 export * from "./competitiveIntelligence";
 export * from "./competitiveIntelligenceCluster";
+export * from "./constraintHistory";
+export * from "./constraintHistoryPatterns";
+export * from "./constraintRow";
 export * from "./createEpisodeBody";
 export * from "./createPipelineRunBody";
 export * from "./createPipelineRunBodyClipType";
@@ -17,8 +20,11 @@ export * from "./episode";
 export * from "./episodeDetail";
 export * from "./episodeRunCard";
 export * from "./episodeStatus";
+export * from "./getConstraintHistoryClipType";
+export * from "./getConstraintHistoryParams";
 export * from "./healthStatus";
 export * from "./listCompetitiveIntelligenceParams";
+export * from "./patternCount";
 export * from "./pipelineDashboard";
 export * from "./pipelineError";
 export * from "./pipelineRun";

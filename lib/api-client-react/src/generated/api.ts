@@ -19,11 +19,13 @@ import type {
 import type {
   CompetitiveIntelligence,
   CompetitiveIntelligenceCluster,
+  ConstraintHistory,
   CreateEpisodeBody,
   CreatePipelineRunBody,
   DiscoverClipsResponse,
   Episode,
   EpisodeDetail,
+  GetConstraintHistoryParams,
   HealthStatus,
   ListCompetitiveIntelligenceParams,
   PipelineDashboard,
@@ -1688,6 +1690,106 @@ export const useUpdateCompetitiveIntelligenceTitleSignal = <
     getUpdateCompetitiveIntelligenceTitleSignalMutationOptions(options),
   );
 };
+
+/**
+ * @summary Get prior creative constraint rows and aggregated patterns
+ */
+export const getGetConstraintHistoryUrl = (
+  params?: GetConstraintHistoryParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/constraints/history?${stringifiedParams}`
+    : `/api/constraints/history`;
+};
+
+export const getConstraintHistory = async (
+  params?: GetConstraintHistoryParams,
+  options?: RequestInit,
+): Promise<ConstraintHistory> => {
+  return customFetch<ConstraintHistory>(getGetConstraintHistoryUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetConstraintHistoryQueryKey = (
+  params?: GetConstraintHistoryParams,
+) => {
+  return [`/api/constraints/history`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetConstraintHistoryQueryOptions = <
+  TData = Awaited<ReturnType<typeof getConstraintHistory>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetConstraintHistoryParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getConstraintHistory>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetConstraintHistoryQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getConstraintHistory>>
+  > = ({ signal }) =>
+    getConstraintHistory(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getConstraintHistory>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetConstraintHistoryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getConstraintHistory>>
+>;
+export type GetConstraintHistoryQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get prior creative constraint rows and aggregated patterns
+ */
+
+export function useGetConstraintHistory<
+  TData = Awaited<ReturnType<typeof getConstraintHistory>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetConstraintHistoryParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getConstraintHistory>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetConstraintHistoryQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary Get dashboard summary stats

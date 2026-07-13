@@ -28,6 +28,7 @@ import {
   ArrowLeft, MoreHorizontal, Archive, Trash2, FileEdit, FileText,
   Video, Clock, AlertCircle, CheckCircle2, PlayCircle, Loader2,
   Copy, Check, Rocket, ChevronRight, Search, ChevronDown, ChevronUp, RefreshCw,
+  Download,
 } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -44,6 +45,13 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { parseDiscoveryOutput, type ParsedDiscoveryClip } from "@/lib/parseDiscovery";
+import {
+  formatEditorBrief,
+  formatRawDiscoveryBrief,
+  formatSingleClipBrief,
+  slugifyFilename,
+  downloadTextFile,
+} from "@/lib/formatClipBrief";
 
 function CopyButton({ text, label = "Copy" }: { text: string; label?: string }) {
   const [copied, setCopied] = useState(false);
@@ -318,6 +326,36 @@ export default function EpisodeWorkspace() {
     );
   }
 
+  function handleDownloadBrief(clips: ParsedDiscoveryClip[], summary: string | null) {
+    const meta = {
+      episodeName: episode!.episodeName,
+      guestName: episode!.guestName,
+      exportDate: new Date(),
+    };
+    const content =
+      clips.length > 0
+        ? formatEditorBrief(meta, clips, summary)
+        : formatRawDiscoveryBrief(meta, episode!.discoveryOutput || "");
+    downloadTextFile(`${slugifyFilename(episode!.episodeName)}-clip-briefs.txt`, content);
+    toast({ title: "Editor brief downloaded" });
+  }
+
+  function handleDownloadSingleClip(clip: ParsedDiscoveryClip) {
+    const content = formatSingleClipBrief(
+      {
+        episodeName: episode!.episodeName,
+        guestName: episode!.guestName,
+        exportDate: new Date(),
+      },
+      clip,
+    );
+    downloadTextFile(
+      `${slugifyFilename(episode!.episodeName)}-clip-${clip.number}.txt`,
+      content,
+    );
+    toast({ title: `Clip ${clip.number} brief downloaded` });
+  }
+
   function handleAnalyzeDiscoveredClip(clip: ParsedDiscoveryClip) {
     setClipType(clip.clipType);
     setClipTranscript(clip.transcriptSegment);
@@ -505,16 +543,27 @@ export default function EpisodeWorkspace() {
                     </span>
                   )}
                 </h2>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5 text-xs"
-                  onClick={handleDiscoverClips}
-                  disabled={discoverClips.isPending}
-                >
-                  <RefreshCw className="h-3.5 w-3.5" />
-                  Re-discover
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 text-xs"
+                    onClick={() => handleDownloadBrief(discoveryClips, discoverySummary)}
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    Download for Editor
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 text-xs"
+                    onClick={handleDiscoverClips}
+                    disabled={discoverClips.isPending}
+                  >
+                    <RefreshCw className="h-3.5 w-3.5" />
+                    Re-discover
+                  </Button>
+                </div>
               </div>
 
               {discoveryClips.length === 0 ? (
@@ -599,6 +648,15 @@ export default function EpisodeWorkspace() {
                           )}
 
                           <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 text-xs gap-1.5"
+                              onClick={() => handleDownloadSingleClip(clip)}
+                            >
+                              <Download className="h-3 w-3" />
+                              Download
+                            </Button>
                             <Button
                               variant="ghost"
                               size="sm"

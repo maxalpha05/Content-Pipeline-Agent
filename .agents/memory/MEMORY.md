@@ -1,0 +1,1 @@
+- [Claude output token budgets](claude-output-token-budgets.md) — transcript-heavy LLM outputs truncate silently under small max_tokens; check stop_reason before blaming the prompt.

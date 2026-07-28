@@ -320,7 +320,9 @@ router.post("/episodes/:id/discover-clips", async (req, res): Promise<void> => {
   try {
     const stream = anthropic.messages.stream({
       model: "claude-sonnet-4-6",
-      max_tokens: 4096,
+      // Discovery output includes 4-6 verbatim transcript segments plus a
+      // summary block; 4096 tokens truncates it mid-clip on real episodes.
+      max_tokens: 16384,
       system: CLIP_DISCOVERY_PROMPT,
       messages: [{ role: "user", content: userMessage }],
     });

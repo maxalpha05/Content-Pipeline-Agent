@@ -408,6 +408,12 @@ export const GetConstraintHistoryQueryParams = zod.object({
     .describe(
       "Space-separated topic keywords; rows whose topic_keywords share any token are included.",
     ),
+  topicCluster: zod.coerce
+    .string()
+    .optional()
+    .describe(
+      "Optionally restrict history to rows tagged with this topic cluster (case-insensitive exact match).",
+    ),
   limit: zod.coerce.number().default(getConstraintHistoryQueryLimitDefault),
   clipType: zod.enum(["vertical", "horizontal"]).optional(),
 });
@@ -421,6 +427,7 @@ export const GetConstraintHistoryResponse = zod.object({
       episodeId: zod.number().nullish(),
       clipType: zod.string(),
       topicKeywords: zod.string(),
+      topicCluster: zod.string().nullish(),
       createdAt: zod.coerce.date(),
       titleVerbRule: zod.string().nullish(),
       titleStatRule: zod.string().nullish(),

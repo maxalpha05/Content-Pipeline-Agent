@@ -10,10 +10,11 @@ router.get("/constraints/history", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const { episodeId, topic, clipType, limit } = parsed.data;
+  const { episodeId, topic, topicCluster, clipType, limit } = parsed.data;
   const history = await fetchConstraintHistory({
     episodeId: typeof episodeId === "number" ? episodeId : undefined,
     topic: topic || undefined,
+    topicCluster: topicCluster || undefined,
     clipType: clipType ?? undefined,
     limit: typeof limit === "number" ? limit : undefined,
   });

@@ -26,6 +26,7 @@ export interface ConstraintHistory {
 export interface FetchConstraintHistoryOptions {
   episodeId?: number;
   topic?: string;
+  topicCluster?: string;
   clipType?: "vertical" | "horizontal";
   limit?: number;
 }
@@ -75,7 +76,7 @@ function topTokens(values: (string | null | undefined)[], topN = 8): PatternCoun
 export async function fetchConstraintHistory(
   options: FetchConstraintHistoryOptions = {},
 ): Promise<ConstraintHistory> {
-  const { episodeId, topic, clipType, limit = 20 } = options;
+  const { episodeId, topic, topicCluster, clipType, limit = 20 } = options;
 
   const conditions = [];
   if (typeof episodeId === "number") {
@@ -83,6 +84,11 @@ export async function fetchConstraintHistory(
   }
   if (clipType) {
     conditions.push(eq(creativeConstraintsTable.clipType, clipType));
+  }
+  if (topicCluster && topicCluster.trim()) {
+    conditions.push(
+      sql`lower(${creativeConstraintsTable.topicCluster}) = ${topicCluster.trim().toLowerCase()}`,
+    );
   }
 
   const tokens = topic ? tokenize(topic) : [];

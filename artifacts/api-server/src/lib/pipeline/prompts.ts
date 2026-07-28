@@ -30,6 +30,9 @@ STEP 2: Analyze and report competitive data across platforms.
 ## CORE INSIGHT
 One specific sentence describing what this clip is about. Not a topic label. A specific claim or tension.
 
+## TOPIC CLUSTER
+This section is machine-parsed. Use the exact heading "## TOPIC CLUSTER" and output a single lowercase label on one line, nothing else. Choose the best fit from: growth, marketing, sales, product, hiring, fundraising, leadership, operations, ai, branding, content, pricing. If none fits, output a single lowercase hyphenated label of your own (e.g. "customer-retention").
+
 ## COMPETITIVE RESEARCH
 
 ### YouTube Shorts (from API data)

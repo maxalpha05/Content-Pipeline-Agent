@@ -16,6 +16,10 @@ export type GetConstraintHistoryParams = {
    * Space-separated topic keywords; rows whose topic_keywords share any token are included.
    */
   topic?: string;
+  /**
+   * Optionally restrict history to rows tagged with this topic cluster (case-insensitive exact match).
+   */
+  topicCluster?: string;
   limit?: number;
   clipType?: GetConstraintHistoryClipType;
 };

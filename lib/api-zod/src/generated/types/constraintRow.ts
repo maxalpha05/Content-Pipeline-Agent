@@ -13,6 +13,8 @@ export interface ConstraintRow {
   episodeId?: number | null;
   clipType: string;
   topicKeywords: string;
+  /** @nullable */
+  topicCluster?: string | null;
   createdAt: Date;
   /** @nullable */
   titleVerbRule?: string | null;

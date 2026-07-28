@@ -444,6 +444,13 @@ export async function runClipPipeline(
       })
       .where(eq(pipelineRunsTable.id, runId));
 
+    // Topic cluster label produced by the Research Analyst (e.g. "growth-marketing").
+    // Shared by the creative-constraints and competitive-intelligence records.
+    const topicCluster =
+      extractSection(researchOutput, "TOPIC CLUSTER")
+        ?.split("\n")[0]
+        ?.trim() || null;
+
     // --- Write creative constraints record (always, best-effort parsing) ---
     try {
       const raw = creativeConstraints || "## CREATIVE CONSTRAINTS\nInsufficient data to constrain. Writer's discretion.";
@@ -465,7 +472,7 @@ export async function runClipPipeline(
         clipType,
         topicKeywords:
           overrideKeywords ?? (extractTopicKeywords(clipTranscript) || ""),
-        topicCluster: null,
+        topicCluster,
         constraintsRaw: raw,
         titleVerbRule: parseConstraintField(titleConstraints, /VERB RULE:\s*(.+)/i),
         titleStatRule: parseConstraintField(titleConstraints, /STAT RULE:\s*(.+)/i),
@@ -503,7 +510,6 @@ export async function runClipPipeline(
           ? Math.max(...youtubeShorts.map((s) => s.views))
           : 0;
 
-      const topicCluster = extractSection(researchOutput, "TOPIC CLUSTER");
       const instagramData = extractSubSection(researchOutput, "Instagram Reels");
       const tiktokData = extractSubSection(researchOutput, "TikTok");
       const linkedinData = extractSubSection(researchOutput, "LinkedIn Posts");

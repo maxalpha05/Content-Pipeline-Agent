@@ -61,6 +61,17 @@ export default function ConstraintHistoryPanel({ episodeId, topic, clipType }: P
 
   if (!hasAny) return null;
 
+  // Dominant topic cluster across returned rows (e.g. "growth") — used to
+  // personalize the header when past clips have been tagged.
+  const clusterCounts = new Map<string, number>();
+  for (const row of data.rows) {
+    const c = row.topicCluster?.trim();
+    if (c) clusterCounts.set(c, (clusterCounts.get(c) ?? 0) + 1);
+  }
+  const dominantCluster =
+    Array.from(clusterCounts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] ??
+    null;
+
   return (
     <Card className="border-border/50 shadow-sm bg-gradient-to-br from-primary/5 to-transparent">
       <CardHeader className="pb-3">
@@ -69,7 +80,9 @@ export default function ConstraintHistoryPanel({ episodeId, topic, clipType }: P
             <Sparkles className="h-3.5 w-3.5 text-primary" />
           </div>
           <CardTitle className="text-base flex items-center gap-2">
-            What's worked for similar clips
+            {dominantCluster
+              ? `What's worked for ${dominantCluster} clips`
+              : "What's worked for similar clips"}
             <span className="text-xs font-normal text-muted-foreground flex items-center gap-1">
               <TrendingUp className="h-3 w-3" />
               {data.totalRuns} past {data.totalRuns === 1 ? "run" : "runs"}

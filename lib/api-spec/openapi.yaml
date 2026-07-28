@@ -444,6 +444,12 @@ paths:
           schema:
             type: string
           description: Space-separated topic keywords; rows whose topic_keywords share any token are included.
+        - name: topicCluster
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Optionally restrict history to rows tagged with this topic cluster (case-insensitive exact match).
         - name: limit
           in: query
           required: false
@@ -835,6 +841,8 @@ components:
           type: string
         topicKeywords:
           type: string
+        topicCluster:
+          type: ["string", "null"]
         createdAt:
           type: string
           format: date-time

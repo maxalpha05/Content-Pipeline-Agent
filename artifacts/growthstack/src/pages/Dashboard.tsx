@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { Link } from "wouter";
-import { PlusCircle, Mic, ArrowRight, FileText, Clock, Archive } from "lucide-react";
+import { PlusCircle, Mic, ArrowRight, FileText, Clock, Archive, CheckCircle2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 
@@ -109,6 +109,22 @@ export default function Dashboard() {
                               {episode.episodeName}
                             </h3>
                             {getStatusBadge(episode.status)}
+                            {episode.substackArticle ? (
+                              <Badge
+                                variant="outline"
+                                className="bg-sky-500/10 text-sky-700 border-sky-200 gap-1 text-xs"
+                                data-testid={`badge-content-ready-${episode.id}`}
+                              >
+                                <CheckCircle2 className="h-3 w-3" /> Content ready
+                              </Badge>
+                            ) : (
+                              <span
+                                className="text-xs text-muted-foreground/70"
+                                data-testid={`text-no-content-${episode.id}`}
+                              >
+                                No full content yet
+                              </span>
+                            )}
                           </div>
                           <p className="text-sm text-muted-foreground mt-0.5">
                             with {episode.guestName}

@@ -1,10 +1,9 @@
-import { Switch, Route, Router as WouterRouter } from "wouter";
+import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/Dashboard";
-import NewRun from "@/pages/NewRun";
 import NewEpisode from "@/pages/NewEpisode";
 import EpisodeWorkspace from "@/pages/EpisodeWorkspace";
 import RunDetail from "@/pages/RunDetail";
@@ -17,7 +16,9 @@ function Router() {
       <Route path="/" component={Dashboard} />
       <Route path="/episodes/new" component={NewEpisode} />
       <Route path="/episodes/:id" component={EpisodeWorkspace} />
-      <Route path="/new" component={NewRun} />
+      <Route path="/new">
+        <Redirect to="/episodes/new" replace />
+      </Route>
       <Route path="/runs/:id" component={RunDetail} />
       <Route component={NotFound} />
     </Switch>

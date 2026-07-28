@@ -1186,8 +1186,7 @@ export default function ClipResults({ run, runId, isProcessing }: ClipResultsPro
             size="sm"
             className="gap-2"
             onClick={() => {
-              sessionStorage.setItem("gs_episode_transcript", run.episodeTranscript);
-              setLocation("/new");
+              setLocation(run.episodeId ? `/episodes/${run.episodeId}` : "/episodes/new");
             }}
           >
             <ArrowRight className="h-3.5 w-3.5" />
@@ -1198,8 +1197,7 @@ export default function ClipResults({ run, runId, isProcessing }: ClipResultsPro
             size="sm"
             className="gap-2"
             onClick={() => {
-              sessionStorage.removeItem("gs_episode_transcript");
-              setLocation("/new");
+              setLocation("/episodes/new");
             }}
           >
             New Episode

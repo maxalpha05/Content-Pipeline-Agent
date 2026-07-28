@@ -4,9 +4,70 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { Link } from "wouter";
-import { PlusCircle, Mic, ArrowRight, FileText, Clock, Archive, CheckCircle2 } from "lucide-react";
+import { PlusCircle, Mic, ArrowRight, FileText, Clock, Archive, CheckCircle2, Circle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import type { Episode } from "@workspace/api-client-react";
+
+const CONTENT_PIECES: { key: keyof Episode; label: string }[] = [
+  { key: "substackArticle", label: "Article" },
+  { key: "substackNote", label: "Note" },
+  { key: "linkedinPost", label: "LinkedIn" },
+  { key: "twitterPost", label: "Twitter" },
+  { key: "youtubeDescription", label: "YouTube" },
+];
+
+function ContentReadinessBadge({ episode }: { episode: Episode }) {
+  const pieces = CONTENT_PIECES.map((p) => ({ ...p, ready: Boolean(episode[p.key]) }));
+  const readyCount = pieces.filter((p) => p.ready).length;
+
+  const breakdown = (
+    <div className="space-y-1" data-testid={`tooltip-content-breakdown-${episode.id}`}>
+      {pieces.map((p) => (
+        <div key={p.key} className="flex items-center gap-1.5 text-xs">
+          {p.ready ? (
+            <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+          ) : (
+            <Circle className="h-3 w-3 text-muted-foreground/50" />
+          )}
+          <span className={p.ready ? "" : "text-muted-foreground"}>{p.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+
+  if (readyCount === 0) {
+    return (
+      <span
+        className="text-xs text-muted-foreground/70"
+        data-testid={`text-no-content-${episode.id}`}
+      >
+        No full content yet
+      </span>
+    );
+  }
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Badge
+          variant="outline"
+          className={
+            readyCount === pieces.length
+              ? "bg-sky-500/10 text-sky-700 border-sky-200 gap-1 text-xs cursor-default"
+              : "bg-amber-500/10 text-amber-700 border-amber-200 gap-1 text-xs cursor-default"
+          }
+          data-testid={`badge-content-ready-${episode.id}`}
+        >
+          <CheckCircle2 className="h-3 w-3" />
+          {readyCount === pieces.length ? "Content ready" : `Content ${readyCount}/${pieces.length}`}
+        </Badge>
+      </TooltipTrigger>
+      <TooltipContent side="bottom">{breakdown}</TooltipContent>
+    </Tooltip>
+  );
+}
 
 function getStatusBadge(status: string) {
   if (status === "archived") {
@@ -109,22 +170,7 @@ export default function Dashboard() {
                               {episode.episodeName}
                             </h3>
                             {getStatusBadge(episode.status)}
-                            {episode.substackArticle ? (
-                              <Badge
-                                variant="outline"
-                                className="bg-sky-500/10 text-sky-700 border-sky-200 gap-1 text-xs"
-                                data-testid={`badge-content-ready-${episode.id}`}
-                              >
-                                <CheckCircle2 className="h-3 w-3" /> Content ready
-                              </Badge>
-                            ) : (
-                              <span
-                                className="text-xs text-muted-foreground/70"
-                                data-testid={`text-no-content-${episode.id}`}
-                              >
-                                No full content yet
-                              </span>
-                            )}
+                            <ContentReadinessBadge episode={episode} />
                           </div>
                           <p className="text-sm text-muted-foreground mt-0.5">
                             with {episode.guestName}

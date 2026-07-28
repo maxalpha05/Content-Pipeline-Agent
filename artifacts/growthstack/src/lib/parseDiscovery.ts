@@ -20,6 +20,8 @@ export interface ParsedDiscoveryClip {
   legacyFormat: boolean;
   surgeryNotes: string | null;
   topicKeywords: string | null;
+  /** Per-clip b-roll suggestions — null for legacy outputs without the section */
+  brollSuggestions: string | null;
   transcriptSegment: string;
 }
 
@@ -148,6 +150,7 @@ export function parseDiscoveryOutput(raw: string): ParsedDiscoveryOutput {
     const clipTypeRaw = extractField(block, "Clip type") ?? "";
     const topicKw = extractField(block, "Topic keywords");
     const surgery = extractMultilineField(block, "Surgery notes");
+    const broll = extractMultilineField(block, "B-roll suggestions");
 
     let wordCount: string | null = null;
     let durationLabel: string | null = null;
@@ -163,7 +166,8 @@ export function parseDiscoveryOutput(raw: string): ParsedDiscoveryOutput {
       : "vertical";
 
     const tsMatch = block.match(
-      /\*\*Transcript segment:\*\*\s*\n```\s*\n?([\s\S]*?)\n?```/i,
+      // Tolerate a parenthetical qualifier, e.g. "Transcript segment (post-surgery):"
+      /\*\*Transcript segment(?:\s*\([^)]*\))?:\*\*\s*\n```\s*\n?([\s\S]*?)\n?```/i,
     );
     const transcriptSegment = tsMatch ? tsMatch[1] : "";
 
@@ -206,6 +210,7 @@ export function parseDiscoveryOutput(raw: string): ParsedDiscoveryOutput {
       legacyFormat,
       surgeryNotes: surgery,
       topicKeywords: topicKw,
+      brollSuggestions: broll,
       transcriptSegment,
     });
   }

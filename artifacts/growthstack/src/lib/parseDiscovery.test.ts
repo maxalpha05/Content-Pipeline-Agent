@@ -25,6 +25,10 @@ Trim the 10s lead-in. Cut filler "you know" at line 165.
 
 **Topic keywords:** saas onboarding, activation, week-one churn
 
+**B-roll suggestions:**
+1. When the guest cites the 90% churn stat (line 143): overlay an animated stat callout counting to 90%. Stock search: "churn dashboard analytics screen".
+2. During the 3-step activation loop (lines 160-175): cut to screen-capture footage of a SaaS onboarding checklist. Stock search: "saas onboarding flow ui". Reference: Slack's first-run checklist style seen in top onboarding Shorts.
+
 **Transcript segment:**
 \`\`\`
 142: So here's the thing about onboarding...
@@ -57,7 +61,7 @@ Add setup line 405. Keep the host reaction at line 455.
 
 **Topic keywords:** pricing, tiering, founder mistakes
 
-**Transcript segment:**
+**Transcript segment (post-surgery):**
 \`\`\`
 410: Most founders get pricing wrong because...
 470: ...and that's the lesson.
@@ -114,6 +118,10 @@ describe("parseDiscoveryOutput (new format)", () => {
     expect(c1.coldViewerVerdict).toBe("PASSES");
     expect(c1.legacyFormat).toBe(false);
     expect(c1.surgeryNotes).toMatch(/Trim the 10s lead-in/);
+    expect(c1.brollSuggestions).toContain("animated stat callout");
+    expect(c1.brollSuggestions).toContain('Stock search: "saas onboarding flow ui"');
+    // Clip 2 has no b-roll section — must be null, not leaked from clip 1
+    expect(clips[1].brollSuggestions).toBeNull();
     expect(c1.transcriptSegment).toContain("142: So here's the thing");
 
     const c2 = clips[1];
@@ -123,6 +131,8 @@ describe("parseDiscoveryOutput (new format)", () => {
     expect(c2.punchiness).toBe("NEEDS WORK");
     expect(c2.coldViewerVerdict).toBe("PASSES WITH SURGERY");
     expect(c2.topicKeywords).toBe("pricing, tiering, founder mistakes");
+    // Label with parenthetical qualifier still parses
+    expect(c2.transcriptSegment).toContain("410: Most founders get pricing wrong");
 
     expect(summary).toContain("## DISCOVERY SUMMARY");
     expect(summary).toContain("Total clips found: 2");

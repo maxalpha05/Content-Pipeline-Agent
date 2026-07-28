@@ -47,6 +47,11 @@ export function formatClipSection(clip: ParsedDiscoveryClip): string {
   lines.push("SURGERY NOTES (what to cut / keep)");
   lines.push(clip.surgeryNotes ?? "None provided");
   lines.push("");
+  if (clip.brollSuggestions) {
+    lines.push("B-ROLL SUGGESTIONS");
+    lines.push(clip.brollSuggestions);
+    lines.push("");
+  }
   lines.push("TOPIC KEYWORDS");
   lines.push(clip.topicKeywords ?? "None provided");
   lines.push("");

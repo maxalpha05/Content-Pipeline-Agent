@@ -681,6 +681,16 @@ export default function EpisodeWorkspace() {
                                   </p>
                                 </div>
                               )}
+                              {clip.brollSuggestions && (
+                                <div>
+                                  <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                                    B-Roll Suggestions
+                                  </div>
+                                  <p className="text-xs text-foreground/80 whitespace-pre-wrap leading-relaxed">
+                                    {clip.brollSuggestions}
+                                  </p>
+                                </div>
+                              )}
                               {clip.topicKeywords && (
                                 <div>
                                   <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">

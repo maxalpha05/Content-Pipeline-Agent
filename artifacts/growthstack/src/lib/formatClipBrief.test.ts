@@ -30,6 +30,8 @@ const clip: ParsedDiscoveryClip = {
   legacyFormat: false,
   surgeryNotes: "Cut the first two sentences.\nKeep the pause at line 130.",
   topicKeywords: "niche down, b2b saas, positioning",
+  brollSuggestions:
+    '1. At the niche-down claim (line 122): show a zooming market-map graphic. Stock search: "market segmentation chart".',
   transcriptSegment: "  Speaker A: So here's the thing...  \n\nSpeaker B: right.  ",
 };
 
@@ -52,6 +54,8 @@ describe("formatEditorBrief", () => {
     expect(out).toContain("Cold viewer:    PASSES");
     expect(out).toContain("Cut the first two sentences.\nKeep the pause at line 130.");
     expect(out).toContain("niche down, b2b saas, positioning");
+    expect(out).toContain("B-ROLL SUGGESTIONS");
+    expect(out).toContain('Stock search: "market segmentation chart"');
     expect(out).toContain("DISCOVERY SUMMARY");
     expect(out).toContain("Good episode.");
   });
@@ -77,6 +81,7 @@ describe("formatEditorBrief", () => {
       coldViewerVerdict: null,
       surgeryNotes: null,
       topicKeywords: null,
+      brollSuggestions: null,
       transcriptSegment: "",
     };
     const out = formatEditorBrief(meta, [bare], null);

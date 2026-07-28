@@ -321,9 +321,20 @@ router.post("/episodes/:id/discover-clips", async (req, res): Promise<void> => {
     const stream = anthropic.messages.stream({
       model: "claude-sonnet-4-6",
       // Discovery output includes 4-6 verbatim transcript segments plus a
-      // summary block; 4096 tokens truncates it mid-clip on real episodes.
-      max_tokens: 16384,
+      // summary block and per-clip b-roll suggestions; 4096 tokens truncates
+      // it mid-clip on real episodes, so keep a generous budget.
+      max_tokens: 20000,
       system: CLIP_DISCOVERY_PROMPT,
+      // Web search lets the agent ground b-roll suggestions in real, current
+      // visuals/formats for each clip's topic. The prompt instructs it to
+      // degrade to transcript-only suggestions if search fails.
+      tools: [
+        {
+          type: "web_search_20250305" as const,
+          name: "web_search",
+          max_uses: 5,
+        },
+      ],
       messages: [{ role: "user", content: userMessage }],
     });
 

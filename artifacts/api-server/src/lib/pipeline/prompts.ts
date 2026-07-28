@@ -605,6 +605,17 @@ For each recommended clip, output:
 
 **Topic keywords:** [3-5 specific keywords for this clip's topic, used for competitive research]
 
+**B-roll suggestions:**
+[3-6 specific, actionable visual ideas for this clip. This section is REQUIRED for every clip. Each suggestion must be detailed enough for a video editor to act on without re-reading the episode. Format each suggestion as a numbered item:
+
+1. [Line/moment anchor — e.g., "When the guest cites the 40% churn stat (line 152)"]: [the exact visual to show — e.g., "overlay an animated stat callout counting up to 40%; cut to screen-capture footage of a SaaS onboarding flow"]. Stock search: "[2-4 concrete stock-footage search terms]". [If web research surfaced a real-world reference — a product UI, company logo, chart style, or format used by top performers on this topic — cite it here with what to borrow from it.]
+
+Rules for this section:
+- Anchor every suggestion to a specific line or spoken moment in the transcript segment.
+- Include concrete, searchable stock-footage keywords with every suggestion (terms an editor can paste into a stock library).
+- Before writing this section, use web search to research this clip's topic keywords: look for real product UIs, brand visuals, chart styles, and b-roll formats top-performing short-form videos use for this topic. Weave specific findings into the suggestions.
+- If web search is unavailable or fails, still output the full section using transcript-only suggestions — never skip or abbreviate it. Note briefly that references are transcript-based.]
+
 **Transcript segment:**
 \`\`\`
 [The exact transcript lines from start to end, verbatim, with line numbers. Do not paraphrase or summarize. Copy word-for-word.]
@@ -620,5 +631,7 @@ After all clips, output:
 - Most likely to perform on YouTube Shorts: Clip [number] — [one-line reason]
 - Most likely to perform on LinkedIn: Clip [number] — [one-line reason]
 - Topic clusters covered: [list of distinct topic areas across all clips]
+
+IMPORTANT: Use the section labels above EXACTLY as written (e.g. "**Transcript segment:**" — never "**Transcript segment (post-surgery):**" or any other variation). The output is machine-parsed.
 
 IMPORTANT: Every transcript line must be copied EXACTLY as it appears in the source transcript. Do not clean up grammar, remove filler words, or fix speech patterns. The user needs verbatim text to locate these segments in their video editor.`;

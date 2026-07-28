@@ -328,6 +328,18 @@ export default function EpisodeWorkspace() {
       const response = await fetch(`/api/episodes/${episodeId}/discover-clips`, {
         method: "POST",
       });
+      if (response.status === 409) {
+        // A scan is already running server-side (e.g. another tab, or a
+        // re-click while one is in flight) — don't treat this as a failure.
+        setIsDiscovering(false);
+        setDiscoveryError(null);
+        toast({
+          title: "Scan already in progress",
+          description:
+            "A discovery scan is already running for this episode. Results are saved automatically when it finishes.",
+        });
+        return;
+      }
       if (!response.ok || !response.body) {
         throw new Error("Failed to start clip discovery");
       }

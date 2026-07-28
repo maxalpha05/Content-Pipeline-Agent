@@ -46,6 +46,25 @@ function extractFinalPackage(text: string): string {
 
 const router: IRouter = Router();
 
+// Per-episode in-flight guard for discovery scans. Discovery runs ~5 minutes
+// and keeps running server-side even if the browser disconnects; without a
+// guard, a re-discover (or second tab) clears the stored output and races the
+// first run. The lock is in-memory, so a server restart mid-scan naturally
+// clears it (no permanent stale lock). The TTL is belt-and-braces in case a
+// scan hangs without ever settling.
+const DISCOVERY_LOCK_TTL_MS = 15 * 60 * 1000;
+const discoveryInFlight = new Map<number, number>(); // episodeId -> startedAt (ms)
+
+function isDiscoveryRunning(episodeId: number): boolean {
+  const startedAt = discoveryInFlight.get(episodeId);
+  if (startedAt === undefined) return false;
+  if (Date.now() - startedAt > DISCOVERY_LOCK_TTL_MS) {
+    discoveryInFlight.delete(episodeId);
+    return false;
+  }
+  return true;
+}
+
 router.get("/episodes", async (_req, res): Promise<void> => {
   const episodes = await db
     .select()
@@ -265,6 +284,18 @@ router.post("/episodes/:id/discover-clips", async (req, res): Promise<void> => {
     return;
   }
 
+  // Reject a second scan while one is already in flight for this episode.
+  // Checked BEFORE clearing stored output so a duplicate request cannot wipe
+  // a result the running scan is about to (or just did) persist.
+  if (isDiscoveryRunning(id)) {
+    res.status(409).json({
+      error:
+        "A discovery scan is already running for this episode. Results are saved automatically when it finishes — refresh in a few minutes.",
+    });
+    return;
+  }
+  discoveryInFlight.set(id, Date.now());
+
   // Re-discover semantics: clear any prior stored output before rerunning so
   // stale data is not retained if the new Claude call fails.
   await db
@@ -388,6 +419,7 @@ router.post("/episodes/:id/discover-clips", async (req, res): Promise<void> => {
     }
   } catch (err) {
     clearInterval(heartbeat);
+    discoveryInFlight.delete(id);
     req.log.error({ err, episodeId: id }, "[discover-clips] Claude call failed");
     sendEvent({ type: "error", message: "Clip discovery failed" });
     if (!res.writableEnded) res.end();
@@ -407,12 +439,14 @@ router.post("/episodes/:id/discover-clips", async (req, res): Promise<void> => {
       "[discover-clips] output persisted",
     );
   } catch (err) {
+    discoveryInFlight.delete(id);
     req.log.error({ err, episodeId: id }, "[discover-clips] failed to persist output");
     sendEvent({ type: "error", message: "Failed to save discovery results" });
     if (!res.writableEnded) res.end();
     return;
   }
 
+  discoveryInFlight.delete(id);
   sendEvent({ type: "done", episodeId: id });
   if (!res.writableEnded) res.end();
 });

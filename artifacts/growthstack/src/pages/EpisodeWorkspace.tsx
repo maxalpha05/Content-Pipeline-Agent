@@ -605,9 +605,41 @@ export default function EpisodeWorkspace() {
                           </div>
 
                           <div className="flex flex-wrap gap-1.5">
-                            <RatingBadge label="Hook" rating={clip.hookRating} />
-                            <RatingBadge label="Value" rating={clip.valueRating} />
-                            <RatingBadge label="Close" rating={clip.closeRating} />
+                            <RatingBadge
+                              label={clip.legacyFormat ? "Hook" : "Setup"}
+                              rating={clip.setupRating}
+                            />
+                            <RatingBadge
+                              label={clip.legacyFormat ? "Value" : "Follow-through"}
+                              rating={clip.followThroughRating}
+                            />
+                            <RatingBadge
+                              label={clip.legacyFormat ? "Close" : "Completion"}
+                              rating={clip.completionRating}
+                            />
+                            {clip.emotionalTrigger && (
+                              <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                                {clip.emotionalTrigger.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())}
+                                {clip.punchiness ? ` · ${clip.punchiness === "PUNCHY" ? "Punchy" : "Needs work"}` : ""}
+                              </span>
+                            )}
+                            {clip.coldViewerVerdict && (
+                              <span
+                                className={`text-xs px-1.5 py-0.5 rounded border ${
+                                  clip.coldViewerVerdict === "PASSES"
+                                    ? "bg-emerald-500/10 text-emerald-700 border-emerald-200"
+                                    : clip.coldViewerVerdict === "PASSES WITH SURGERY"
+                                      ? "bg-amber-500/10 text-amber-700 border-amber-200"
+                                      : "bg-destructive/10 text-destructive border-destructive/20"
+                                }`}
+                              >
+                                Cold viewer: {clip.coldViewerVerdict === "PASSES WITH SURGERY"
+                                  ? "Passes with surgery"
+                                  : clip.coldViewerVerdict === "PASSES"
+                                    ? "Passes"
+                                    : "Fails"}
+                              </span>
+                            )}
                           </div>
 
                           {clip.transcriptSegment && !isExpanded && (

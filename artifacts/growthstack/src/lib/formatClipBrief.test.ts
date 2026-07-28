@@ -21,9 +21,13 @@ const clip: ParsedDiscoveryClip = {
   durationLabel: "~72 seconds",
   clipType: "vertical",
   clipTypeRaw: "Vertical (YouTube Shorts / Instagram Reels)",
-  hookRating: "STRONG",
-  valueRating: "NEEDS WORK",
-  closeRating: null,
+  setupRating: "STRONG",
+  followThroughRating: "NEEDS WORK",
+  completionRating: null,
+  emotionalTrigger: "RISK AVERSION",
+  punchiness: "PUNCHY",
+  coldViewerVerdict: "PASSES",
+  legacyFormat: false,
   surgeryNotes: "Cut the first two sentences.\nKeep the pause at line 130.",
   topicKeywords: "niche down, b2b saas, positioning",
   transcriptSegment: "  Speaker A: So here's the thing...  \n\nSpeaker B: right.  ",
@@ -41,9 +45,11 @@ describe("formatEditorBrief", () => {
     expect(out).toContain("Lines:              120-158");
     expect(out).toContain("Word count:         185 words");
     expect(out).toContain("Estimated duration: ~72 seconds");
-    expect(out).toContain("Hook:  Strong");
-    expect(out).toContain("Value: Needs work");
-    expect(out).toContain("Close: Not rated");
+    expect(out).toContain("Setup:          Strong");
+    expect(out).toContain("Follow-through: Needs work");
+    expect(out).toContain("Completion:     Not rated");
+    expect(out).toContain("Hook trigger:   RISK AVERSION (punchy)");
+    expect(out).toContain("Cold viewer:    PASSES");
     expect(out).toContain("Cut the first two sentences.\nKeep the pause at line 130.");
     expect(out).toContain("niche down, b2b saas, positioning");
     expect(out).toContain("DISCOVERY SUMMARY");
@@ -63,9 +69,12 @@ describe("formatEditorBrief", () => {
       linesLabel: null,
       wordCount: null,
       durationLabel: null,
-      hookRating: null,
-      valueRating: null,
-      closeRating: null,
+      setupRating: null,
+      followThroughRating: null,
+      completionRating: null,
+      emotionalTrigger: null,
+      punchiness: null,
+      coldViewerVerdict: null,
       surgeryNotes: null,
       topicKeywords: null,
       transcriptSegment: "",

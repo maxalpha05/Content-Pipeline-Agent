@@ -26,9 +26,23 @@ export function formatClipSection(clip: ParsedDiscoveryClip): string {
   lines.push(`Estimated duration: ${clip.durationLabel ?? "Not specified"}`);
   lines.push("");
   lines.push("RATINGS");
-  lines.push(`  Hook:  ${ratingLabel(clip.hookRating)}`);
-  lines.push(`  Value: ${ratingLabel(clip.valueRating)}`);
-  lines.push(`  Close: ${ratingLabel(clip.closeRating)}`);
+  if (clip.legacyFormat) {
+    lines.push(`  Hook:  ${ratingLabel(clip.setupRating)}`);
+    lines.push(`  Value: ${ratingLabel(clip.followThroughRating)}`);
+    lines.push(`  Close: ${ratingLabel(clip.completionRating)}`);
+  } else {
+    lines.push(`  Setup:          ${ratingLabel(clip.setupRating)}`);
+    lines.push(`  Follow-through: ${ratingLabel(clip.followThroughRating)}`);
+    lines.push(`  Completion:     ${ratingLabel(clip.completionRating)}`);
+    if (clip.emotionalTrigger) {
+      lines.push(
+        `  Hook trigger:   ${clip.emotionalTrigger}${clip.punchiness ? ` (${clip.punchiness.toLowerCase()})` : ""}`,
+      );
+    }
+    if (clip.coldViewerVerdict) {
+      lines.push(`  Cold viewer:    ${clip.coldViewerVerdict}`);
+    }
+  }
   lines.push("");
   lines.push("SURGERY NOTES (what to cut / keep)");
   lines.push(clip.surgeryNotes ?? "None provided");

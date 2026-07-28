@@ -6,9 +6,18 @@ export interface ParsedDiscoveryClip {
   durationLabel: string | null;
   clipType: "vertical" | "horizontal";
   clipTypeRaw: string;
-  hookRating: string | null;
-  valueRating: string | null;
-  closeRating: string | null;
+  /** New format: Setup / Follow-through / Completion ratings. Legacy Hook/Value/Close outputs map onto these. */
+  setupRating: string | null;
+  followThroughRating: string | null;
+  completionRating: string | null;
+  /** e.g. "RISK AVERSION", "CONTRARIAN" — new format only */
+  emotionalTrigger: string | null;
+  /** "PUNCHY" | "NEEDS WORK" — new format only */
+  punchiness: string | null;
+  /** "PASSES" | "PASSES WITH SURGERY" | "FAILS" — new format only */
+  coldViewerVerdict: string | null;
+  /** True when ratings came from the legacy Hook/Value/Close format */
+  legacyFormat: boolean;
   surgeryNotes: string | null;
   topicKeywords: string | null;
   transcriptSegment: string;
@@ -41,6 +50,47 @@ function extractMultilineField(block: string, label: string): string | null {
   );
   const m = block.match(re);
   return m ? m[1].trim() : null;
+}
+
+const TRIGGER_TYPES = [
+  "RISK AVERSION",
+  "FOMO",
+  "CONTRARIAN",
+  "STAKES",
+  "IDENTITY CHALLENGE",
+  "CURIOSITY GAP",
+  "EDUCATIONAL",
+];
+
+function extractEmotionalTrigger(block: string): {
+  trigger: string | null;
+  punchiness: string | null;
+} {
+  const raw = extractMultilineField(block, "Emotional trigger");
+  if (!raw) return { trigger: null, punchiness: null };
+  const upper = raw.toUpperCase();
+  let trigger: string | null = null;
+  for (const t of TRIGGER_TYPES) {
+    if (upper.includes(t)) {
+      trigger = t;
+      break;
+    }
+  }
+  let punchiness: string | null = null;
+  if (/\bPUNCHY\b/i.test(raw)) punchiness = "PUNCHY";
+  else if (/\bNEEDS WORK\b/i.test(raw)) punchiness = "NEEDS WORK";
+  return { trigger, punchiness };
+}
+
+function extractColdViewerVerdict(block: string): string | null {
+  const raw =
+    extractMultilineField(block, "Cold[- ]?viewer verdict") ??
+    extractMultilineField(block, "Cold[- ]?viewer");
+  if (!raw) return null;
+  if (/PASSES WITH SURGERY/i.test(raw)) return "PASSES WITH SURGERY";
+  if (/\bPASSES\b/i.test(raw)) return "PASSES";
+  if (/\bFAILS\b/i.test(raw)) return "FAILS";
+  return null;
 }
 
 export function parseDiscoveryOutput(raw: string): ParsedDiscoveryOutput {
@@ -83,6 +133,28 @@ export function parseDiscoveryOutput(raw: string): ParsedDiscoveryOutput {
     );
     const transcriptSegment = tsMatch ? tsMatch[1] : "";
 
+    // New format ratings
+    let setupRating = extractRating(block, "Setup");
+    let followThroughRating = extractRating(block, "Follow-through");
+    let completionRating = extractRating(block, "Completion");
+    let legacyFormat = false;
+
+    // Legacy Hook/Value/Close outputs — map onto the new structure so older
+    // stored discovery runs still render.
+    if (!setupRating && !followThroughRating && !completionRating) {
+      const hook = extractRating(block, "Hook");
+      const value = extractRating(block, "Value");
+      const close = extractRating(block, "Close");
+      if (hook || value || close) {
+        legacyFormat = true;
+        setupRating = hook;
+        followThroughRating = value;
+        completionRating = close;
+      }
+    }
+
+    const { trigger, punchiness } = extractEmotionalTrigger(block);
+
     clips.push({
       number,
       insight,
@@ -91,9 +163,13 @@ export function parseDiscoveryOutput(raw: string): ParsedDiscoveryOutput {
       durationLabel,
       clipType,
       clipTypeRaw,
-      hookRating: extractRating(block, "Hook"),
-      valueRating: extractRating(block, "Value"),
-      closeRating: extractRating(block, "Close"),
+      setupRating,
+      followThroughRating,
+      completionRating,
+      emotionalTrigger: trigger,
+      punchiness,
+      coldViewerVerdict: extractColdViewerVerdict(block),
+      legacyFormat,
       surgeryNotes: surgery,
       topicKeywords: topicKw,
       transcriptSegment,

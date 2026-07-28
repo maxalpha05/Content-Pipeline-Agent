@@ -137,7 +137,7 @@ paths:
     post:
       operationId: discoverClips
       tags: [episodes]
-      summary: Scan the full transcript and return 4-6 recommended clip-worthy moments
+      summary: Scan the full transcript and stream 4-6 recommended clip-worthy moments (SSE)
       parameters:
         - name: id
           in: path
@@ -146,11 +146,9 @@ paths:
             type: integer
       responses:
         "200":
-          description: Discovery output stored on the episode
+          description: SSE stream of discovery progress; output is persisted on the episode when complete
           content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/DiscoverClipsResponse"
+            text/event-stream: {}
         "404":
           description: Not found
           content:
@@ -824,16 +822,6 @@ components:
       required:
         - userSelectedTitle
         - userSelectedTitleIndex
-    DiscoverClipsResponse:
-      type: object
-      properties:
-        episodeId:
-          type: integer
-        discoveryOutput:
-          type: string
-      required:
-        - episodeId
-        - discoveryOutput
     ConstraintRow:
       type: object
       properties:

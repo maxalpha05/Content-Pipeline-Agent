@@ -15,7 +15,6 @@ export * from "./createEpisodeBody";
 export * from "./createPipelineRunBody";
 export * from "./createPipelineRunBodyClipType";
 export * from "./createPipelineRunBodyType";
-export * from "./discoverClipsResponse";
 export * from "./episode";
 export * from "./episodeDetail";
 export * from "./episodeRunCard";

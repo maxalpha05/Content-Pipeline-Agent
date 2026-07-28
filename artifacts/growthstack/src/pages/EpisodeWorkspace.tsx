@@ -8,7 +8,6 @@ import {
   useDeleteEpisode,
   useDeletePipelineRun,
   useCreatePipelineRun,
-  useDiscoverClips,
   useGetConstraintHistory,
   CreatePipelineRunBodyClipType,
   CreatePipelineRunBodyType,
@@ -155,7 +154,6 @@ export default function EpisodeWorkspace() {
   const deleteEpisode = useDeleteEpisode();
   const deleteRun = useDeletePipelineRun();
   const createRun = useCreatePipelineRun();
-  const discoverClips = useDiscoverClips();
 
   const { data: episode, isLoading, isError } = useGetEpisode(episodeId);
 
@@ -175,6 +173,11 @@ export default function EpisodeWorkspace() {
 
   const [expandedClipIdx, setExpandedClipIdx] = useState<number | null>(null);
   const [suggestedKeywords, setSuggestedKeywords] = useState<string | null>(null);
+
+  const [isDiscovering, setIsDiscovering] = useState(false);
+  const [discoveryStatus, setDiscoveryStatus] = useState("Scanning transcript...");
+  const [discoveryChars, setDiscoveryChars] = useState(0);
+  const [discoveryError, setDiscoveryError] = useState<string | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(search);
@@ -312,23 +315,79 @@ export default function EpisodeWorkspace() {
     );
   }
 
-  function handleDiscoverClips() {
-    discoverClips.mutate(
-      { id: episodeId },
-      {
-        onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: getGetEpisodeQueryKey(episodeId) });
-          toast({ title: "Discovery complete" });
-        },
-        onError: () => {
-          toast({
-            title: "Discovery failed",
-            description: "Could not scan the transcript. Please try again.",
-            variant: "destructive",
-          });
-        },
-      },
-    );
+  async function handleDiscoverClips() {
+    setIsDiscovering(true);
+    setDiscoveryError(null);
+    setDiscoveryStatus("Scanning transcript...");
+    setDiscoveryChars(0);
+    // Discovery streams over SSE — with web research it can take several
+    // minutes, longer than the proxy allows for a single buffered response.
+    // The server persists the result even if this connection drops, so a
+    // refresh after a network hiccup will still show the finished output.
+    try {
+      const response = await fetch(`/api/episodes/${episodeId}/discover-clips`, {
+        method: "POST",
+      });
+      if (!response.ok || !response.body) {
+        throw new Error("Failed to start clip discovery");
+      }
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let sawDone = false;
+      let serverError: string | null = null;
+
+      const processLine = (line: string) => {
+        if (!line.startsWith("data: ")) return;
+        try {
+          const data = JSON.parse(line.slice(6));
+          if (data.type === "status" && data.message) {
+            setDiscoveryStatus(data.message);
+          } else if (data.type === "chunk" && typeof data.content === "string") {
+            setDiscoveryStatus("Writing clip recommendations...");
+            setDiscoveryChars((c) => c + data.content.length);
+          } else if (data.type === "error") {
+            serverError = data.message || "Clip discovery failed";
+          } else if (data.type === "done") {
+            sawDone = true;
+          }
+        } catch {}
+      };
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        for (const line of lines) processLine(line);
+      }
+      // The final event can land in the trailing buffer without a newline —
+      // parse it too, or a successful run gets misreported as interrupted.
+      buffer += decoder.decode();
+      for (const line of buffer.split("\n")) processLine(line);
+
+      if (serverError) throw new Error(serverError);
+      if (!sawDone) {
+        // Connection ended without a done event — the server may still have
+        // finished and saved; refetch before deciding it failed.
+        await queryClient.invalidateQueries({ queryKey: getGetEpisodeQueryKey(episodeId) });
+        throw new Error("Connection interrupted — refresh in a minute; results are saved when the scan finishes.");
+      }
+
+      await queryClient.invalidateQueries({ queryKey: getGetEpisodeQueryKey(episodeId) });
+      toast({ title: "Discovery complete" });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Could not scan the transcript.";
+      setDiscoveryError(message);
+      toast({
+        title: "Discovery failed",
+        description: message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsDiscovering(false);
+    }
   }
 
   function handleDownloadBrief(clips: ParsedDiscoveryClip[], summary: string | null) {
@@ -496,7 +555,6 @@ export default function EpisodeWorkspace() {
           const { clips: parsedClips, summary: discoverySummary } =
             parseDiscoveryOutput(episode.discoveryOutput || "");
           const discoveryClips = sortClipsByReadiness(parsedClips);
-          const isDiscovering = discoverClips.isPending;
           const hasDiscovery = !!episode.discoveryOutput;
 
           if (isDiscovering) {
@@ -504,11 +562,14 @@ export default function EpisodeWorkspace() {
               <Card className="shadow-sm border-border/50">
                 <CardContent className="p-8 flex flex-col items-center text-center">
                   <Loader2 className="h-6 w-6 animate-spin text-primary mb-3" />
-                  <h3 className="font-medium text-sm mb-1">
-                    Scanning transcript for clip-worthy moments...
-                  </h3>
+                  <h3 className="font-medium text-sm mb-1">{discoveryStatus}</h3>
                   <p className="text-xs text-muted-foreground">
-                    This usually takes 30-60 seconds.
+                    With web research for b-roll ideas this can take a few minutes.
+                    {discoveryChars > 0 && (
+                      <span className="block mt-1 tabular-nums">
+                        {discoveryChars.toLocaleString()} characters written so far
+                      </span>
+                    )}
                   </p>
                 </CardContent>
               </Card>
@@ -533,6 +594,14 @@ export default function EpisodeWorkspace() {
                     Discover Clips
                   </Button>
                 </CardContent>
+                {discoveryError && (
+                  <CardContent className="px-6 pb-4 pt-0">
+                    <p className="text-xs text-destructive flex items-center gap-1.5">
+                      <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                      {discoveryError} Use the button above to retry.
+                    </p>
+                  </CardContent>
+                )}
               </Card>
             );
           }
@@ -564,7 +633,7 @@ export default function EpisodeWorkspace() {
                     size="sm"
                     className="gap-1.5 text-xs"
                     onClick={handleDiscoverClips}
-                    disabled={discoverClips.isPending}
+                    disabled={isDiscovering}
                   >
                     <RefreshCw className="h-3.5 w-3.5" />
                     Re-discover

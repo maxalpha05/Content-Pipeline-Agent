@@ -1,2 +1,3 @@
 - [Claude output token budgets](claude-output-token-budgets.md) — transcript-heavy LLM outputs truncate silently under small max_tokens; check stop_reason before blaming the prompt.
 - [Discovery output parsing](discovery-output-parsing.md) — Claude drifts from exact section labels; parsers need label tolerance plus a "machine-parsed, exact labels" prompt rule.
+- [SSE for long AI requests](sse-long-requests.md) — responses >120s behind the proxy are aborted; stream SSE with heartbeats and persist server-side regardless of client connection.

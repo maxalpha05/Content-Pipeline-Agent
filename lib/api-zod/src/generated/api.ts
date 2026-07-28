@@ -139,15 +139,10 @@ export const DeleteEpisodeParams = zod.object({
 });
 
 /**
- * @summary Scan the full transcript and return 4-6 recommended clip-worthy moments
+ * @summary Scan the full transcript and stream 4-6 recommended clip-worthy moments (SSE)
  */
 export const DiscoverClipsParams = zod.object({
   id: zod.coerce.number(),
-});
-
-export const DiscoverClipsResponse = zod.object({
-  episodeId: zod.number(),
-  discoveryOutput: zod.string(),
 });
 
 /**

@@ -22,7 +22,6 @@ import type {
   ConstraintHistory,
   CreateEpisodeBody,
   CreatePipelineRunBody,
-  DiscoverClipsResponse,
   Episode,
   EpisodeDetail,
   GetConstraintHistoryParams,
@@ -544,7 +543,7 @@ export const useDeleteEpisode = <
 };
 
 /**
- * @summary Scan the full transcript and return 4-6 recommended clip-worthy moments
+ * @summary Scan the full transcript and stream 4-6 recommended clip-worthy moments (SSE)
  */
 export const getDiscoverClipsUrl = (id: number) => {
   return `/api/episodes/${id}/discover-clips`;
@@ -553,8 +552,8 @@ export const getDiscoverClipsUrl = (id: number) => {
 export const discoverClips = async (
   id: number,
   options?: RequestInit,
-): Promise<DiscoverClipsResponse> => {
-  return customFetch<DiscoverClipsResponse>(getDiscoverClipsUrl(id), {
+): Promise<unknown> => {
+  return customFetch<unknown>(getDiscoverClipsUrl(id), {
     ...options,
     method: "POST",
   });
@@ -605,7 +604,7 @@ export type DiscoverClipsMutationResult = NonNullable<
 export type DiscoverClipsMutationError = ErrorType<PipelineError>;
 
 /**
- * @summary Scan the full transcript and return 4-6 recommended clip-worthy moments
+ * @summary Scan the full transcript and stream 4-6 recommended clip-worthy moments (SSE)
  */
 export const useDiscoverClips = <
   TError = ErrorType<PipelineError>,

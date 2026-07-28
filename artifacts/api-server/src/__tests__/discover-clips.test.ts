@@ -153,7 +153,7 @@ async function createTestEpisode(): Promise<number> {
 }
 
 describe("Discover Clips end-to-end", () => {
-  it("POST /api/episodes/:id/discover-clips stores the discovery output", async () => {
+  it("POST /api/episodes/:id/discover-clips streams SSE and stores the discovery output", async () => {
     const episodeId = await createTestEpisode();
 
     const res = await request(app)
@@ -161,9 +161,11 @@ describe("Discover Clips end-to-end", () => {
       .send();
 
     expect(res.status).toBe(200);
-    expect(res.body.episodeId).toBe(episodeId);
-    expect(res.body.discoveryOutput).toContain("## CLIP 1");
-    expect(res.body.discoveryOutput).toContain("## DISCOVERY SUMMARY");
+    expect(res.headers["content-type"]).toContain("text/event-stream");
+    // Streamed chunks carry the discovery text; a done event closes the stream.
+    expect(res.text).toContain('"type":"chunk"');
+    expect(res.text).toContain('"type":"done"');
+    expect(res.text).toContain("CLIP 1");
 
     const [episode] = await db
       .select()

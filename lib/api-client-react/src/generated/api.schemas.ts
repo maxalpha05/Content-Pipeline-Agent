@@ -309,11 +309,6 @@ export interface UpdateCompetitiveIntelligenceTitleBody {
   userSelectedTitleIndex: number;
 }
 
-export interface DiscoverClipsResponse {
-  episodeId: number;
-  discoveryOutput: string;
-}
-
 export interface ConstraintRow {
   id: number;
   pipelineRunId: number;

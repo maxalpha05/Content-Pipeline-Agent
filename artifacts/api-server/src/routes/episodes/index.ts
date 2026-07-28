@@ -316,6 +316,40 @@ router.post("/episodes/:id/discover-clips", async (req, res): Promise<void> => {
 
   const userMessage = `${historicalContext}FULL EPISODE TRANSCRIPT:\n${episode.fullTranscript}\n\nScan this transcript and identify the 4-6 strongest clip-worthy moments.`;
 
+  // Stream the response as SSE. Discovery with web search regularly exceeds
+  // the proxy's ~120s limit for buffered responses; the request used to be
+  // aborted at exactly 120000ms and the finished output thrown away. Streaming
+  // keeps the connection alive, and persistence below is deliberately NOT tied
+  // to the client connection — if the browser disconnects mid-run, the run
+  // still completes and the result is saved for the next page load.
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders?.();
+
+  const sendEvent = (data: Record<string, unknown>): void => {
+    try {
+      if (!res.writableEnded && !res.destroyed) {
+        res.write(`data: ${JSON.stringify(data)}\n\n`);
+      }
+    } catch {
+      // Client went away between the guard and the write — persistence below
+      // must not be affected, so swallow the write error.
+    }
+  };
+
+  // Web-search tool calls produce long gaps with no text deltas; heartbeats
+  // keep intermediaries from treating the connection as idle.
+  const heartbeat = setInterval(() => {
+    try {
+      if (!res.writableEnded && !res.destroyed) {
+        res.write(": keep-alive\n\n");
+      }
+    } catch {}
+  }, 15000);
+
+  sendEvent({ type: "status", message: "Scanning transcript..." });
+
   let discoveryOutput = "";
   try {
     const stream = anthropic.messages.stream({
@@ -344,20 +378,43 @@ router.post("/episodes/:id/discover-clips", async (req, res): Promise<void> => {
         event.delta.type === "text_delta"
       ) {
         discoveryOutput += event.delta.text;
+        sendEvent({ type: "chunk", content: event.delta.text });
+      } else if (
+        event.type === "content_block_start" &&
+        event.content_block?.type === "server_tool_use"
+      ) {
+        sendEvent({ type: "status", message: "Researching b-roll ideas..." });
       }
     }
   } catch (err) {
+    clearInterval(heartbeat);
     req.log.error({ err, episodeId: id }, "[discover-clips] Claude call failed");
-    res.status(500).json({ error: "Clip discovery failed" });
+    sendEvent({ type: "error", message: "Clip discovery failed" });
+    if (!res.writableEnded) res.end();
     return;
   }
 
-  await db
-    .update(episodesTable)
-    .set({ discoveryOutput, updatedAt: new Date() })
-    .where(eq(episodesTable.id, id));
+  clearInterval(heartbeat);
 
-  res.json({ episodeId: id, discoveryOutput });
+  // Persist regardless of whether the client is still connected.
+  try {
+    await db
+      .update(episodesTable)
+      .set({ discoveryOutput, updatedAt: new Date() })
+      .where(eq(episodesTable.id, id));
+    req.log.info(
+      { episodeId: id, outputLength: discoveryOutput.length, clientConnected: !res.writableEnded && !res.destroyed },
+      "[discover-clips] output persisted",
+    );
+  } catch (err) {
+    req.log.error({ err, episodeId: id }, "[discover-clips] failed to persist output");
+    sendEvent({ type: "error", message: "Failed to save discovery results" });
+    if (!res.writableEnded) res.end();
+    return;
+  }
+
+  sendEvent({ type: "done", episodeId: id });
+  if (!res.writableEnded) res.end();
 });
 
 export default router;

@@ -44,7 +44,12 @@ import {
 } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { parseDiscoveryOutput, type ParsedDiscoveryClip } from "@/lib/parseDiscovery";
+import {
+  parseDiscoveryOutput,
+  sortClipsByReadiness,
+  isTopPick,
+  type ParsedDiscoveryClip,
+} from "@/lib/parseDiscovery";
 import {
   formatEditorBrief,
   formatRawDiscoveryBrief,
@@ -488,8 +493,9 @@ export default function EpisodeWorkspace() {
 
         {/* Section: Clip Discovery */}
         {(() => {
-          const { clips: discoveryClips, summary: discoverySummary } =
+          const { clips: parsedClips, summary: discoverySummary } =
             parseDiscoveryOutput(episode.discoveryOutput || "");
+          const discoveryClips = sortClipsByReadiness(parsedClips);
           const isDiscovering = discoverClips.isPending;
           const hasDiscovery = !!episode.discoveryOutput;
 
@@ -579,15 +585,30 @@ export default function EpisodeWorkspace() {
                 </Card>
               ) : (
                 <div className="space-y-2">
-                  {discoveryClips.map((clip, idx) => {
-                    const isExpanded = expandedClipIdx === idx;
+                  <p className="text-xs text-muted-foreground">
+                    Sorted by publish readiness — clips that pass the cold-viewer test and are rated punchy appear first.
+                  </p>
+                  {discoveryClips.map((clip) => {
+                    const isExpanded = expandedClipIdx === clip.number;
+                    const topPick = isTopPick(clip);
                     return (
-                      <Card key={idx} className="border-border/50 shadow-sm">
+                      <Card
+                        key={clip.number}
+                        className={topPick ? "border-emerald-300 shadow-sm ring-1 ring-emerald-200/60" : "border-border/50 shadow-sm"}
+                      >
                         <CardContent className="p-4 space-y-3">
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
-                              <div className="text-xs font-mono text-muted-foreground mb-0.5">
-                                CLIP {clip.number}
+                              <div className="flex items-center gap-2 mb-0.5">
+                                <span className="text-xs font-mono text-muted-foreground">
+                                  CLIP {clip.number}
+                                </span>
+                                {topPick && (
+                                  <span className="text-xs px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-700 border border-emerald-200 font-medium inline-flex items-center gap-1">
+                                    <Rocket className="h-3 w-3" />
+                                    Top pick
+                                  </span>
+                                )}
                               </div>
                               <h3 className="font-medium text-sm text-foreground leading-snug">
                                 {clip.insight}
@@ -693,7 +714,7 @@ export default function EpisodeWorkspace() {
                               variant="ghost"
                               size="sm"
                               className="h-7 text-xs gap-1.5"
-                              onClick={() => setExpandedClipIdx(isExpanded ? null : idx)}
+                              onClick={() => setExpandedClipIdx(isExpanded ? null : clip.number)}
                             >
                               {isExpanded ? (
                                 <><ChevronUp className="h-3 w-3" /> Hide segment</>

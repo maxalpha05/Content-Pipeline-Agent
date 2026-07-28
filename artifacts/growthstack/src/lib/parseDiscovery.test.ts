@@ -178,3 +178,60 @@ some prose follows but none of the labelled fields appear here.
     expect(clips[0].clipType).toBe("vertical");
   });
 });
+
+import { readinessScore, sortClipsByReadiness, isTopPick, type ParsedDiscoveryClip } from "./parseDiscovery";
+
+function makeClip(overrides: Partial<ParsedDiscoveryClip>): ParsedDiscoveryClip {
+  return {
+    number: 1,
+    insight: "x",
+    linesLabel: null,
+    wordCount: null,
+    durationLabel: null,
+    clipType: "vertical",
+    clipTypeRaw: "",
+    setupRating: null,
+    followThroughRating: null,
+    completionRating: null,
+    emotionalTrigger: null,
+    punchiness: null,
+    coldViewerVerdict: null,
+    legacyFormat: false,
+    surgeryNotes: null,
+    topicKeywords: null,
+    transcriptSegment: "",
+    ...overrides,
+  };
+}
+
+describe("readiness sorting", () => {
+  it("orders passes+punchy first, fails last, unknown between surgery and fails", () => {
+    const fails = makeClip({ number: 1, coldViewerVerdict: "FAILS" });
+    const surgery = makeClip({ number: 2, coldViewerVerdict: "PASSES WITH SURGERY" });
+    const passesPunchy = makeClip({ number: 3, coldViewerVerdict: "PASSES", punchiness: "PUNCHY" });
+    const passes = makeClip({ number: 4, coldViewerVerdict: "PASSES" });
+    const unknown = makeClip({ number: 5 });
+    const sorted = sortClipsByReadiness([fails, surgery, passesPunchy, passes, unknown]);
+    expect(sorted.map((c) => c.number)).toEqual([3, 4, 2, 5, 1]);
+  });
+
+  it("uses strong section ratings as tiebreak and keeps stable order otherwise", () => {
+    const a = makeClip({ number: 1, coldViewerVerdict: "PASSES" });
+    const b = makeClip({ number: 2, coldViewerVerdict: "PASSES", setupRating: "STRONG" });
+    const c = makeClip({ number: 3, coldViewerVerdict: "PASSES" });
+    const sorted = sortClipsByReadiness([a, b, c]);
+    expect(sorted.map((x) => x.number)).toEqual([2, 1, 3]);
+  });
+
+  it("marks top pick only for passes + punchy", () => {
+    expect(isTopPick(makeClip({ coldViewerVerdict: "PASSES", punchiness: "PUNCHY" }))).toBe(true);
+    expect(isTopPick(makeClip({ coldViewerVerdict: "PASSES" }))).toBe(false);
+    expect(isTopPick(makeClip({ coldViewerVerdict: "PASSES WITH SURGERY", punchiness: "PUNCHY" }))).toBe(false);
+  });
+
+  it("scores punchiness needs-work as a penalty", () => {
+    const punchy = makeClip({ coldViewerVerdict: "PASSES", punchiness: "PUNCHY" });
+    const needsWork = makeClip({ coldViewerVerdict: "PASSES", punchiness: "NEEDS WORK" });
+    expect(readinessScore(punchy)).toBeGreaterThan(readinessScore(needsWork));
+  });
+});

@@ -28,6 +28,40 @@ export interface ParsedDiscoveryOutput {
   summary: string | null;
 }
 
+/**
+ * Score how publish-ready a discovered clip is, based on the cold-viewer
+ * verdict (dominant signal), punchiness, and section ratings (tiebreak).
+ * Higher = more ready.
+ */
+export function readinessScore(clip: ParsedDiscoveryClip): number {
+  let score = 0;
+  // Cold-viewer verdict dominates: Passes > Passes with surgery > unknown > Fails
+  if (clip.coldViewerVerdict === "PASSES") score += 100;
+  else if (clip.coldViewerVerdict === "PASSES WITH SURGERY") score += 60;
+  else if (clip.coldViewerVerdict === "FAILS") score -= 100;
+  // Punchiness is the second signal
+  if (clip.punchiness === "PUNCHY") score += 30;
+  else if (clip.punchiness === "NEEDS WORK") score -= 10;
+  // Section ratings break ties
+  for (const r of [clip.setupRating, clip.followThroughRating, clip.completionRating]) {
+    if (r === "STRONG") score += 5;
+  }
+  return score;
+}
+
+/**
+ * Return clips ordered strongest-first by readiness. Stable: clips with equal
+ * scores keep their original transcript order. Original array is not mutated.
+ */
+export function sortClipsByReadiness(clips: ParsedDiscoveryClip[]): ParsedDiscoveryClip[] {
+  return [...clips].sort((a, b) => readinessScore(b) - readinessScore(a));
+}
+
+/** Whether a clip qualifies for the "Top pick" indicator. */
+export function isTopPick(clip: ParsedDiscoveryClip): boolean {
+  return clip.coldViewerVerdict === "PASSES" && clip.punchiness === "PUNCHY";
+}
+
 function extractRating(block: string, label: string): string | null {
   const re = new RegExp(
     `\\*\\*${label} assessment:\\*\\*[\\s\\S]*?\\b(STRONG|NEEDS WORK)\\b`,
